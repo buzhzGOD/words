@@ -1,0 +1,2714 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050d18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Слова из слов — Ultimate</title>
+<style>
+  :root{
+    --bg-1:#050d18;--bg-2:#0e2340;--bg-3:#1d5488;
+    --accent:#ffb703;--accent-2:#ffd979;
+    --text:#eaf2ff;--muted:rgba(234,242,255,.55);
+    --success:#4ade80;--danger:#f87171;--teal:#4ecdc4;--purple:#a78bfa;
+    --panel:rgba(255,255,255,.06);--panel-bd:rgba(255,255,255,.10);
+    --cell-bg:rgba(255,255,255,.04);--cell-bd:rgba(255,255,255,.06);
+    --cell-found-text:#16324f;
+  }
+  [data-theme="ocean"]{
+    --bg-1:#03121a;--bg-2:#0a2b3a;--bg-3:#115e6b;
+    --accent:#00d9c0;--accent-2:#7cf7e0;--success:#5eead4;
+  }
+  [data-theme="light"]{
+    --bg-1:#dfe7f2;--bg-2:#c5d4e6;--bg-3:#f0f5fb;
+    --text:#0c2138;--muted:rgba(12,33,56,.55);
+    --panel:rgba(255,255,255,.75);--panel-bd:rgba(12,33,56,.1);
+    --cell-bg:rgba(255,255,255,.6);--cell-bd:rgba(12,33,56,.08);
+    --accent:#ef8a17;--accent-2:#ffb703;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;padding:0;height:100%;overflow:hidden;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--text);
+    background:radial-gradient(ellipse at 50% -10%,var(--bg-3) 0%,var(--bg-2) 45%,var(--bg-1) 100%);
+    user-select:none;-webkit-user-select:none;touch-action:manipulation;
+    transition:background .5s;overscroll-behavior:none;
+  }
+  #ambient{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;}
+  #app{
+    position:relative;z-index:1;display:flex;flex-direction:column;
+    height:100vh;height:100dvh;max-width:520px;margin:0 auto;
+    padding:max(8px,env(safe-area-inset-top)) 12px max(10px,env(safe-area-inset-bottom));
+    gap:6px;
+  }
+  .header{display:flex;align-items:center;gap:6px;flex:0 0 auto;padding:6px 2px;}
+  .level-pill{
+    display:flex;align-items:center;background:var(--panel);
+    border:1px solid var(--panel-bd);border-radius:14px;padding:6px 12px;
+    flex:0 0 auto;cursor:pointer;transition:transform .12s;
+    font-size:16px;font-weight:900;color:#fff;
+  }
+  .level-pill:active{transform:scale(.95);}
+  .level-pill small{font-size:10px;opacity:.55;font-weight:700;margin-left:2px;}
+  .progress-wrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;cursor:pointer;}
+  .progress-track{height:6px;border-radius:99px;background:rgba(127,127,127,.18);overflow:hidden;}
+  .progress-fill{
+    height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    border-radius:99px;transition:width .5s cubic-bezier(.4,1.4,.5,1);
+    box-shadow:0 0 12px var(--accent);
+  }
+  .progress-text{font-size:10px;font-weight:800;color:var(--muted);text-align:right;letter-spacing:.3px;display:flex;justify-content:flex-end;gap:6px;}
+  .coin-pill{
+    display:flex;align-items:center;gap:5px;background:var(--panel);
+    border:1px solid var(--panel-bd);border-radius:14px;padding:6px 10px;
+    font-size:13px;font-weight:900;color:#fff;min-width:52px;justify-content:center;
+    transition:transform .12s;
+  }
+  .coin-pill.bump{animation:bump .4s;}
+  @keyframes bump{0%,100%{transform:scale(1);}40%{transform:scale(1.2);background:rgba(255,183,3,.25);}}
+  .coin-pill .ic{color:var(--accent);font-size:12px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:12px;border:1px solid var(--panel-bd);
+    background:var(--panel);color:var(--text);font-size:16px;font-family:inherit;
+    cursor:pointer;display:grid;place-items:center;
+    transition:transform .12s,background .2s,opacity .2s;
+    flex:0 0 auto;position:relative;overflow:hidden;
+  }
+  .icon-btn:active{transform:scale(.9);}
+  .icon-btn.hint{background:rgba(255,183,3,.14);border-color:rgba(255,183,3,.35);color:var(--accent-2);}
+  .icon-btn.hint:disabled{opacity:.3;}
+
+  .board-area{flex:1 1 auto;min-height:0;display:grid;place-items:center;overflow:hidden;padding:4px 0;position:relative;}
+  .board{display:grid;gap:4px;}
+  .cell{
+    display:grid;place-items:center;border-radius:8px;
+    background:var(--cell-bg);border:1px solid var(--cell-bd);
+    font-weight:900;color:var(--cell-found-text);line-height:1;position:relative;
+  }
+  .cell.empty{background:transparent;border-color:transparent;}
+  .cell.found{
+    background:linear-gradient(180deg,#ffffff,#dbe7f7);border-color:#ffffff;
+    box-shadow:0 2px 12px rgba(120,190,255,.3);
+    animation:cellPop .45s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  .cell.hinted{
+    background:linear-gradient(180deg,#ffe9a8,#ffd166);border-color:#ffd166;
+    box-shadow:0 0 22px rgba(255,183,3,.7);
+    animation:cellPop .45s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  @keyframes cellPop{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.18);opacity:1;}100%{transform:scale(1);}}
+
+  .word-row{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:10px;height:44px;}
+  .current-word{
+    min-width:150px;height:40px;border-radius:14px;
+    background:var(--panel);border:1px solid var(--panel-bd);
+    display:grid;place-items:center;
+    font-size:20px;font-weight:900;letter-spacing:5px;
+    color:var(--accent-2);padding:0 18px;cursor:pointer;
+    transition:transform .1s,background .2s,border-color .2s,box-shadow .2s;
+    text-shadow:0 0 14px var(--accent);
+  }
+  .current-word:empty::before{
+    content:"собери слово";font-size:11px;letter-spacing:.6px;
+    font-weight:600;color:var(--muted);text-shadow:none;
+  }
+  .current-word.ready{
+    background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.5);
+    box-shadow:0 0 20px rgba(74,222,128,.25);
+  }
+  .current-word.shake{animation:shake .4s;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}20%{transform:translateX(-9px);}
+    40%{transform:translateX(9px);}60%{transform:translateX(-6px);}
+    80%{transform:translateX(6px);}
+  }
+  .check-btn{
+    width:44px;height:44px;border-radius:50%;border:none;
+    background:linear-gradient(180deg,#4ade80,#22c55e);
+    color:#fff;font-size:20px;font-weight:900;font-family:inherit;
+    cursor:pointer;transition:transform .12s,opacity .2s,box-shadow .12s;
+    box-shadow:0 4px 0 #15803d,0 6px 14px rgba(74,222,128,.3);flex:0 0 auto;
+  }
+  .check-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #15803d;}
+  .check-btn:disabled{opacity:.22;box-shadow:none;transform:none;}
+
+  .bonus-row{
+    flex:0 0 auto;min-height:24px;display:flex;flex-wrap:nowrap;gap:6px;
+    overflow-x:auto;overflow-y:hidden;padding:2px 2px 4px;scrollbar-width:none;
+  }
+  .bonus-row::-webkit-scrollbar{display:none;}
+  .bonus-chip{
+    flex:0 0 auto;background:rgba(78,205,196,.14);
+    border:1px solid rgba(78,205,196,.35);color:var(--teal);
+    padding:4px 10px;border-radius:99px;font-size:11px;font-weight:800;
+    letter-spacing:.4px;white-space:nowrap;
+  }
+  .bonus-chip.new{animation:chipIn .4s cubic-bezier(.2,1.6,.4,1) both;}
+  .bonus-chip.secret{
+    background:rgba(167,139,250,.16);
+    border-color:rgba(167,139,250,.5);color:var(--purple);
+  }
+  @keyframes chipIn{0%{transform:scale(0) rotate(-12deg);opacity:0;}100%{transform:scale(1) rotate(0);opacity:1;}}
+
+  .wheel-wrap{
+    position:relative;width:min(74vw,270px);height:min(74vw,270px);
+    margin:0 auto;flex:0 0 auto;touch-action:none;cursor:pointer;
+  }
+  .wheel{
+    position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 30%,rgba(255,255,255,.10),rgba(255,255,255,.02) 70%);
+    border:1px solid var(--cell-bd);
+    box-shadow:inset 0 0 40px rgba(0,0,0,.3);
+  }
+  .wheel-lines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2;}
+  .letter{
+    position:absolute;width:26%;height:26%;border-radius:50%;border:none;
+    background:linear-gradient(180deg,#ffffff,#cfdcf0);color:#17324f;
+    font-family:inherit;font-size:clamp(16px,5.4vw,22px);font-weight:900;
+    cursor:pointer;display:grid;place-items:center;
+    box-shadow:0 4px 0 rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.5) inset;
+    transition:transform .14s,background .18s,box-shadow .18s;
+    padding:0;line-height:1;z-index:3;will-change:transform;
+    transform:translate(-50%,-50%);
+  }
+  .letter.used{
+    background:linear-gradient(180deg,#ffe08a,#ffb703);color:#4a3000;
+    box-shadow:0 2px 0 rgba(0,0,0,.3),0 0 22px rgba(255,183,3,.75);
+    transform:translate(-50%,-50%) scale(.9);
+  }
+  .letter.press{animation:letterPress .3s;}
+  @keyframes letterPress{
+    0%,100%{transform:translate(-50%,-50%) scale(.9);}
+    50%{transform:translate(-50%,-50%) scale(.78);}
+  }
+  .shuffle-btn{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:24%;height:24%;border-radius:50%;
+    border:1px solid var(--panel-bd);background:var(--panel);
+    color:var(--text);font-size:clamp(16px,5.4vw,22px);cursor:pointer;
+    display:grid;place-items:center;
+    transition:transform .35s cubic-bezier(.2,1.4,.5,1),background .2s;
+    padding:0;z-index:4;opacity:.85;
+  }
+  .shuffle-btn:active{background:rgba(255,255,255,.16);}
+  .shuffle-btn.spin{transform:translate(-50%,-50%) rotate(180deg) scale(.9);}
+
+  .spark{
+    position:fixed;pointer-events:none;z-index:65;
+    width:6px;height:6px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 8px var(--accent);animation:sparkFade .55s ease-out forwards;
+  }
+  @keyframes sparkFade{0%{transform:translate(0,0) scale(1);opacity:1;}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0;}}
+
+  .combo{
+    position:fixed;left:50%;top:110px;transform:translate(-50%,-20px) scale(.6);
+    font-size:34px;font-weight:900;color:var(--accent-2);
+    text-shadow:0 0 22px var(--accent),0 0 40px var(--accent);
+    opacity:0;pointer-events:none;z-index:70;
+    transition:opacity .3s,transform .35s cubic-bezier(.2,1.6,.4,1);
+    letter-spacing:2px;
+  }
+  .combo.show{opacity:1;transform:translate(-50%,0) scale(1);}
+  .combo-bar{
+    position:fixed;left:50%;top:150px;transform:translateX(-50%);
+    width:80px;height:3px;border-radius:99px;
+    background:rgba(255,255,255,.1);overflow:hidden;
+    opacity:0;transition:opacity .3s;z-index:70;
+  }
+  .combo-bar.show{opacity:1;}
+  .combo-bar > div{
+    height:100%;width:100%;background:var(--accent);transform-origin:left;
+  }
+
+  .toast-stack{
+    position:fixed;left:50%;top:64px;transform:translateX(-50%);
+    display:flex;flex-direction:column;gap:6px;z-index:90;
+    pointer-events:none;max-width:calc(100vw - 24px);
+  }
+  .toast{
+    background:linear-gradient(180deg,var(--accent-2),var(--accent));
+    color:#4a3000;padding:10px 20px;border-radius:99px;
+    font-weight:800;font-size:13px;
+    box-shadow:0 8px 26px rgba(255,183,3,.4);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;
+    animation:toastIn .35s cubic-bezier(.2,1.4,.5,1) both;
+  }
+  .toast.out{animation:toastOut .35s ease-in forwards;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-16px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0;transform:translateY(-16px);}}
+  .toast.good{background:linear-gradient(180deg,#6ee7a7,#22c55e);color:#052e1a;box-shadow:0 8px 26px rgba(74,222,128,.4);}
+  .toast.bad{background:linear-gradient(180deg,#fca5a5,#ef4444);color:#3f0a0a;box-shadow:0 8px 26px rgba(248,113,113,.4);}
+  .toast.ach{background:linear-gradient(180deg,#c4b5fd,#8b5cf6);color:#1e0a3f;box-shadow:0 8px 26px rgba(139,92,246,.5);}
+  .toast.quest{background:linear-gradient(180deg,#7dd3fc,#0ea5e9);color:#082f49;box-shadow:0 8px 26px rgba(14,165,233,.5);}
+  .toast.streak{background:linear-gradient(180deg,#fdba74,#f97316);color:#431407;box-shadow:0 8px 26px rgba(249,115,22,.5);}
+
+  .overlay{
+    position:fixed;inset:0;background:rgba(4,10,20,.82);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    display:grid;place-items:center;z-index:80;
+    opacity:0;pointer-events:none;transition:opacity .3s;padding:20px;
+    overflow-y:auto;
+  }
+  .overlay.show{opacity:1;pointer-events:auto;}
+  .overlay-card{
+    background:linear-gradient(180deg,var(--bg-2),var(--bg-1));
+    border:1px solid var(--panel-bd);border-radius:24px;
+    padding:26px 22px;text-align:center;
+    max-width:360px;width:100%;position:relative;
+    box-shadow:0 24px 70px rgba(0,0,0,.6);
+    transform:scale(.9);transition:transform .35s cubic-bezier(.2,1.4,.5,1);
+    max-height:calc(100vh - 40px);overflow-y:auto;
+  }
+  .overlay.show .overlay-card{transform:scale(1);}
+  .overlay-card h2{
+    margin:0 0 8px;font-size:22px;
+    background:linear-gradient(180deg,#fff,var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:900;
+  }
+  .overlay-card .h2-sub{
+    font-size:11px;opacity:.55;letter-spacing:1px;text-transform:uppercase;
+    font-weight:800;margin-bottom:6px;
+  }
+  .overlay-card p{margin:0 0 18px;font-size:13px;opacity:.72;line-height:1.5;}
+  .overlay-close{
+    position:absolute;top:12px;right:12px;
+    width:32px;height:32px;border-radius:50%;
+    border:none;background:rgba(127,127,127,.15);color:var(--text);
+    font-size:15px;cursor:pointer;display:grid;place-items:center;
+  }
+  .overlay-close:active{transform:scale(.9);}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px;}
+  .stat-grid > div{
+    background:var(--panel);border:1px solid var(--panel-bd);
+    border-radius:14px;padding:10px 6px;
+  }
+  .stat-grid .v{display:block;font-size:20px;font-weight:900;color:#fff;line-height:1.1;}
+  .stat-grid .k{font-size:9px;text-transform:uppercase;letter-spacing:.5px;opacity:.55;font-weight:700;margin-top:3px;}
+  .btn-primary{
+    position:relative;overflow:hidden;
+    width:100%;padding:15px;border-radius:16px;border:none;
+    background:linear-gradient(180deg,var(--accent-2),var(--accent));
+    color:#4a3000;font-family:inherit;font-size:15px;font-weight:900;
+    cursor:pointer;box-shadow:0 4px 0 #c98a00,0 8px 20px rgba(255,183,3,.3);
+    transition:transform .1s;letter-spacing:.3px;
+  }
+  .btn-primary:active{transform:translateY(3px);box-shadow:0 1px 0 #c98a00;}
+  .btn-ghost{
+    position:relative;overflow:hidden;
+    width:100%;padding:12px;margin-top:8px;border-radius:14px;
+    border:1px solid var(--panel-bd);background:transparent;
+    color:var(--text);font-family:inherit;font-size:13px;font-weight:700;
+    cursor:pointer;opacity:.75;transition:opacity .2s,background .2s;
+  }
+  .btn-ghost:active{opacity:1;background:var(--panel);}
+  .ripple{
+    position:absolute;border-radius:50%;
+    background:rgba(255,255,255,.45);
+    transform:scale(0);pointer-events:none;
+    animation:rippleEffect .6s ease-out;
+  }
+  @keyframes rippleEffect{to{transform:scale(3);opacity:0;}}
+
+  .stars-row{display:flex;justify-content:center;gap:10px;margin:10px 0 14px;}
+  .star{font-size:44px;color:rgba(127,127,127,.25);transition:transform .5s cubic-bezier(.2,1.6,.4,1),color .3s;transform:scale(0);}
+  .star.on{color:var(--accent);transform:scale(1);text-shadow:0 0 22px var(--accent);}
+  .star.show{transform:scale(1);}
+
+  .record-badge{
+    display:inline-flex;align-items:center;gap:6px;
+    background:linear-gradient(180deg,#fde68a,#f59e0b);
+    color:#431407;font-weight:900;font-size:11px;
+    padding:5px 12px;border-radius:99px;margin-bottom:12px;
+    box-shadow:0 4px 14px rgba(245,158,11,.5);
+    animation:recordPop .5s cubic-bezier(.2,1.6,.4,1) both;
+  }
+  @keyframes recordPop{
+    0%{transform:scale(0) rotate(-8deg);opacity:0;}
+    100%{transform:scale(1) rotate(0);opacity:1;}
+  }
+
+  .level-map{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:4px;margin-bottom:16px;}
+  .lvl-btn{
+    aspect-ratio:1;border-radius:16px;border:1px solid var(--panel-bd);
+    background:var(--panel);color:#fff;font-family:inherit;
+    font-size:18px;font-weight:900;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;padding:3px 2px;position:relative;
+    transition:transform .12s,background .2s;
+  }
+  .lvl-btn:active{transform:scale(.92);}
+  .lvl-btn.current{
+    background:linear-gradient(180deg,var(--accent-2),var(--accent));
+    color:#4a3000;border-color:var(--accent-2);
+    box-shadow:0 0 24px rgba(255,183,3,.5);
+    animation:currentPulse 2s ease-in-out infinite;
+  }
+  @keyframes currentPulse{0%,100%{box-shadow:0 0 24px rgba(255,183,3,.5);}50%{box-shadow:0 0 34px rgba(255,183,3,.85);}}
+  .lvl-btn.locked{opacity:.35;cursor:not-allowed;}
+  .lvl-btn.locked:active{transform:none;}
+  .lvl-btn.inprogress::after{
+    content:'';position:absolute;top:5px;right:5px;
+    width:6px;height:6px;border-radius:50%;
+    background:var(--teal);box-shadow:0 0 8px var(--teal);
+  }
+  .lvl-btn .num{font-size:16px;line-height:1;}
+  .lvl-btn .nm{font-size:7px;opacity:.65;font-weight:700;letter-spacing:.1px;text-transform:uppercase;line-height:1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px;}
+  .lvl-btn .lvl-stars{font-size:8px;letter-spacing:1px;height:8px;line-height:1;}
+  .lvl-btn .lvl-stars span{opacity:.25;}
+  .lvl-btn .lvl-stars span.on{opacity:1;color:var(--accent);}
+
+  .ach-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding:2px;}
+  .ach-item{
+    display:flex;align-items:center;gap:12px;padding:10px 12px;
+    border-radius:14px;background:var(--panel);border:1px solid var(--panel-bd);text-align:left;
+  }
+  .ach-item.locked{opacity:.6;}
+  .ach-item .ach-ic{
+    width:40px;height:40px;border-radius:10px;display:grid;place-items:center;
+    font-size:20px;background:rgba(255,183,3,.14);color:var(--accent);flex:0 0 auto;
+  }
+  .ach-item.locked .ach-ic{background:rgba(127,127,127,.15);color:var(--muted);}
+  .ach-item .ach-txt{flex:1;min-width:0;}
+  .ach-item .ach-t{font-size:13px;font-weight:800;margin:0 0 2px;}
+  .ach-item .ach-d{font-size:11px;opacity:.6;margin:0;line-height:1.3;}
+  .ach-item .ach-prog{font-size:10px;font-weight:800;color:var(--accent);margin-top:3px;opacity:.85;}
+  .ach-item .ach-bar{height:3px;background:rgba(127,127,127,.25);border-radius:99px;overflow:hidden;margin-top:5px;}
+  .ach-item .ach-bar > div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .5s;}
+  .ach-item:not(.locked) .ach-bar > div{background:linear-gradient(90deg,var(--success),#22c55e);}
+
+  .setting-row{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;padding:12px 4px;border-bottom:1px solid var(--panel-bd);
+  }
+  .setting-row:last-child{border-bottom:none;}
+  .setting-row .st-label{font-size:14px;font-weight:700;text-align:left;}
+  .setting-row .st-label small{display:block;font-size:11px;opacity:.55;font-weight:500;margin-top:2px;}
+  .toggle{
+    width:48px;height:28px;border-radius:99px;border:none;
+    background:rgba(127,127,127,.3);position:relative;
+    cursor:pointer;transition:background .25s;flex:0 0 auto;
+  }
+  .toggle::after{
+    content:"";position:absolute;top:3px;left:3px;
+    width:22px;height:22px;border-radius:50%;background:#fff;
+    transition:transform .25s cubic-bezier(.2,1.4,.5,1);
+    box-shadow:0 2px 4px rgba(0,0,0,.2);
+  }
+  .toggle.on{background:var(--success);}
+  .toggle.on::after{transform:translateX(20px);}
+  .theme-picker{display:flex;gap:8px;}
+  .theme-dot{
+    width:32px;height:32px;border-radius:50%;border:2px solid transparent;
+    cursor:pointer;padding:0;transition:transform .15s;position:relative;
+  }
+  .theme-dot:active{transform:scale(.9);}
+  .theme-dot.sel{border-color:var(--accent);box-shadow:0 0 12px var(--accent);}
+  .theme-dot[data-t="dark"]{background:linear-gradient(180deg,#1d5488,#050d18);}
+  .theme-dot[data-t="ocean"]{background:linear-gradient(180deg,#115e6b,#03121a);}
+  .theme-dot[data-t="light"]{background:linear-gradient(180deg,#f0f5fb,#c5d4e6);}
+
+  .hint-option{
+    position:relative;overflow:hidden;
+    display:flex;align-items:center;gap:12px;padding:14px;
+    border-radius:16px;margin-bottom:10px;
+    background:var(--panel);border:1px solid var(--panel-bd);
+    cursor:pointer;text-align:left;width:100%;color:var(--text);font-family:inherit;
+    transition:transform .12s,background .2s;
+  }
+  .hint-option:active{transform:scale(.97);background:rgba(255,255,255,.1);}
+  .hint-option:disabled{opacity:.4;cursor:not-allowed;}
+  .hint-option .ho-ic{
+    width:40px;height:40px;border-radius:12px;display:grid;place-items:center;
+    font-size:20px;background:rgba(255,183,3,.14);color:var(--accent);flex:0 0 auto;
+  }
+  .hint-option .ho-txt{flex:1;min-width:0;}
+  .hint-option .ho-t{font-size:14px;font-weight:800;margin-bottom:2px;}
+  .hint-option .ho-d{font-size:11px;opacity:.6;}
+  .hint-option .ho-cost{font-size:13px;font-weight:900;color:var(--accent);flex:0 0 auto;white-space:nowrap;}
+
+  .word-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:340px;overflow-y:auto;padding:2px;}
+  .wl-item{
+    padding:8px 10px;border-radius:10px;background:var(--panel);
+    border:1px solid var(--panel-bd);font-size:13px;font-weight:700;
+    text-align:center;letter-spacing:2px;
+  }
+  .wl-item.main{color:var(--accent-2);background:rgba(255,183,3,.12);border-color:rgba(255,183,3,.3);}
+  .wl-item.bonus{color:var(--teal);background:rgba(78,205,196,.12);border-color:rgba(78,205,196,.3);}
+  .wl-item.secret{color:var(--purple);background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.35);}
+  .wl-item.not-found{opacity:.35;filter:blur(4px);}
+  .wl-section-title{
+    grid-column:1/-1;font-size:11px;text-transform:uppercase;
+    letter-spacing:1px;font-weight:800;opacity:.55;padding:8px 4px 2px;text-align:left;
+  }
+  .quest-item{
+    display:flex;align-items:center;gap:12px;padding:12px;
+    border-radius:16px;margin-bottom:10px;background:var(--panel);
+    border:1px solid var(--panel-bd);text-align:left;position:relative;overflow:hidden;
+  }
+  .quest-item.done{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.4);}
+  .quest-item .q-ic{
+    width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+    font-size:22px;background:rgba(255,183,3,.14);color:var(--accent);flex:0 0 auto;
+  }
+  .quest-item.done .q-ic{background:rgba(74,222,128,.2);color:var(--success);}
+  .quest-item .q-txt{flex:1;min-width:0;}
+  .quest-item .q-t{font-size:13px;font-weight:800;margin-bottom:3px;}
+  .quest-item .q-d{font-size:11px;opacity:.65;}
+  .quest-item .q-bar{height:4px;background:rgba(127,127,127,.25);border-radius:99px;overflow:hidden;margin-top:6px;}
+  .quest-item .q-bar > div{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .5s;}
+  .quest-item.done .q-bar > div{background:linear-gradient(90deg,var(--success),#22c55e);}
+  .quest-item .q-rew{font-size:12px;font-weight:900;color:var(--accent);flex:0 0 auto;white-space:nowrap;}
+  .quest-item.done .q-rew{color:var(--success);}
+
+  #splashOverlay .overlay-card{
+    background:radial-gradient(ellipse at 50% 0%, var(--bg-3), var(--bg-1) 70%);
+    max-width:340px;
+  }
+  .splash-logo{
+    font-size:62px;font-weight:900;line-height:1;
+    background:linear-gradient(180deg,#fff,var(--accent));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:12px;letter-spacing:-2px;animation:logoFloat 3s ease-in-out infinite;
+  }
+  @keyframes logoFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  .splash-title{font-size:22px;font-weight:900;margin-bottom:6px;color:#fff;}
+  .splash-sub{font-size:13px;opacity:.65;margin-bottom:24px;min-height:18px;}
+  .splash-tiles{display:flex;justify-content:center;gap:6px;margin-bottom:24px;flex-wrap:wrap;}
+  .splash-tile{
+    width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(180deg,#ffffff,#cfdcf0);color:#17324f;
+    display:grid;place-items:center;font-weight:900;font-size:18px;
+    box-shadow:0 3px 0 rgba(0,0,0,.3);
+    animation:tileBounce 1.4s ease-in-out infinite;
+  }
+  .splash-tile:nth-child(1){animation-delay:0s;}
+  .splash-tile:nth-child(2){animation-delay:.15s;}
+  .splash-tile:nth-child(3){animation-delay:.3s;}
+  .splash-tile:nth-child(4){animation-delay:.45s;}
+  .splash-tile:nth-child(5){animation-delay:.6s;}
+  @keyframes tileBounce{0%,100%{transform:translateY(0);}40%{transform:translateY(-12px);}}
+
+  .len-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;}
+  .len-chip{
+    padding:8px 14px;border-radius:14px;background:var(--panel);
+    border:1px solid var(--panel-bd);font-weight:800;font-size:14px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;
+  }
+  .len-chip.done{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.4);color:var(--success);}
+  .len-chip .lc-num{font-size:18px;font-weight:900;color:var(--accent-2);}
+  .len-chip.done .lc-num{color:var(--success);}
+  .len-chip .lc-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.5px;opacity:.6;}
+
+  .completed-badge{
+    position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    background:linear-gradient(180deg,var(--success),#16a34a);
+    color:#052e1a;padding:5px 14px;border-radius:99px;
+    font-size:11px;font-weight:900;letter-spacing:.5px;
+    box-shadow:0 4px 14px rgba(74,222,128,.4);z-index:20;
+    animation:fadeIn .4s;
+  }
+  @keyframes fadeIn{from{opacity:0;transform:translate(-50%,-6px);}to{opacity:1;transform:translate(-50%,0);}}
+
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:95;}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="ambient"></canvas>
+
+<div id="app">
+  <header class="header">
+    <button class="icon-btn" id="menuBtn" title="Меню">☰</button>
+    <div class="level-pill" id="levelPill" title="Карта уровней">
+      <span id="levelNum">1</span><small id="levelTotal">/15</small>
+    </div>
+    <div class="progress-wrap" id="progressWrap" title="Длины слов">
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text">
+        <span id="timerDisplay">0:00</span>
+        <span id="progressText">0 / 0</span>
+      </div>
+    </div>
+    <div class="coin-pill" id="coinPill"><span class="ic">◈</span><span id="coins">0</span></div>
+    <button class="icon-btn hint" id="hintBtn" title="Подсказка">💡</button>
+  </header>
+
+  <main class="board-area" id="boardArea">
+    <div class="board" id="board"></div>
+  </main>
+
+  <div class="word-row">
+    <div class="current-word" id="currentWord" title="Очистить (Esc)"></div>
+    <button class="check-btn" id="checkBtn" disabled>✓</button>
+  </div>
+
+  <div class="bonus-row" id="bonusRow"></div>
+
+  <div class="wheel-wrap" id="wheelWrap">
+    <div class="wheel" id="wheel"></div>
+    <svg class="wheel-lines" id="wheelLines"></svg>
+  </div>
+</div>
+
+<div class="combo" id="combo"></div>
+<div class="combo-bar" id="comboBar"><div></div></div>
+<canvas id="confetti"></canvas>
+<div class="toast-stack" id="toastStack"></div>
+
+<div class="overlay" id="splashOverlay">
+  <div class="overlay-card">
+    <div class="splash-logo">Words</div>
+    <div class="splash-title">Слова из слов</div>
+    <div class="splash-sub" id="splashSub">Собирай слова, открывай кроссворд</div>
+    <div class="splash-tiles">
+      <div class="splash-tile">С</div><div class="splash-tile">Л</div>
+      <div class="splash-tile">О</div><div class="splash-tile">В</div>
+      <div class="splash-tile">А</div>
+    </div>
+    <button class="btn-primary" id="splashPlay">▶ Играть</button>
+    <button class="btn-ghost" id="splashQuests">📋 Ежедневные задания</button>
+  </div>
+</div>
+
+<div class="overlay" id="menuOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Слова из слов</h2>
+    <p id="menuSub">Игра-головоломка со словами</p>
+    <button class="btn-primary" id="continueBtn">▶ Продолжить игру</button>
+    <button class="btn-ghost" id="openQuestsBtn">📋 Ежедневные задания <span id="questsBadge"></span></button>
+    <button class="btn-ghost" id="openMapBtn">🗺 Карта уровней</button>
+    <button class="btn-ghost" id="openAchBtn">🏆 Достижения</button>
+    <button class="btn-ghost" id="openWordsBtn">📖 Все слова</button>
+    <button class="btn-ghost" id="restartLevelBtn">↻ Перезапустить уровень</button>
+    <button class="btn-ghost" id="openSettingsBtn">⚙ Настройки</button>
+  </div>
+</div>
+
+<div class="overlay" id="mapOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Карта уровней</h2>
+    <p id="mapProgress">Пройдено: 0</p>
+    <div class="level-map" id="levelMap"></div>
+    <button class="btn-ghost" id="closeMapBtn">← Назад</button>
+  </div>
+</div>
+
+<div class="overlay" id="winOverlay">
+  <div class="overlay-card">
+    <div class="h2-sub" id="ovLevelLabel">Уровень 1</div>
+    <h2 id="ovTitle">Уровень пройден!</h2>
+    <div id="recordSlot"></div>
+    <div class="stars-row" id="starsRow">
+      <div class="star">★</div><div class="star">★</div><div class="star">★</div>
+    </div>
+    <p id="ovText">Отличная работа!</p>
+    <div class="stat-grid">
+      <div><span class="v" id="ovWords">0</span><div class="k">Слова</div></div>
+      <div><span class="v" id="ovTime">0:00</span><div class="k">Время</div></div>
+      <div><span class="v" id="ovCoins">0</span><div class="k">Монеты</div></div>
+    </div>
+    <button class="btn-primary" id="nextBtn">Следующий уровень</button>
+    <button class="btn-ghost" id="shareResultBtn">📤 Поделиться результатом</button>
+    <button class="btn-ghost" id="replayBtn">↻ Пройти заново</button>
+    <button class="btn-ghost" id="toMapBtn">🗺 К карте уровней</button>
+  </div>
+</div>
+
+<div class="overlay" id="achOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Достижения</h2>
+    <p id="achProgress">Открыто: 0 из 0</p>
+    <div class="ach-list" id="achList"></div>
+    <button class="btn-ghost" id="closeAchBtn">← Назад</button>
+  </div>
+</div>
+
+<div class="overlay" id="questsOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>📋 Ежедневные задания</h2>
+    <p id="questsResetTime">Обновление через...</p>
+    <div id="questsList"></div>
+    <button class="btn-ghost" id="closeQuestsBtn">← Назад</button>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Настройки</h2>
+    <div class="setting-row">
+      <div class="st-label">🔊 Звук<small>Эффекты и клики</small></div>
+      <button class="toggle" id="tgSound"></button>
+    </div>
+    <div class="setting-row">
+      <div class="st-label">📳 Вибрация<small>Тактильный отклик</small></div>
+      <button class="toggle" id="tgHaptics"></button>
+    </div>
+    <div class="setting-row">
+      <div class="st-label">✨ Анимации<small>Фоновые частицы</small></div>
+      <button class="toggle" id="tgAmbient"></button>
+    </div>
+    <div class="setting-row">
+      <div class="st-label">🎨 Тема<small>Оформление</small></div>
+      <div class="theme-picker">
+        <button class="theme-dot" data-t="dark"></button>
+        <button class="theme-dot" data-t="ocean"></button>
+        <button class="theme-dot" data-t="light"></button>
+      </div>
+    </div>
+    <button class="btn-ghost" id="skipLevelBtn" style="margin-top:14px;">⏭ Пропустить уровень (300 ◈)</button>
+    <button class="btn-ghost" id="resetAllBtn">⚠ Сбросить весь прогресс</button>
+    <button class="btn-ghost" id="closeSettingsBtn">← Назад</button>
+  </div>
+</div>
+
+<div class="overlay" id="hintOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Подсказки</h2>
+    <p>Выбери тип подсказки</p>
+    <button class="hint-option" id="hintLetter">
+      <div class="ho-ic">💡</div>
+      <div class="ho-txt">
+        <div class="ho-t">Открыть букву</div>
+        <div class="ho-d">Одна буква в неразгаданном слове</div>
+      </div>
+      <div class="ho-cost">25 ◈</div>
+    </button>
+    <button class="hint-option" id="hintSmart">
+      <div class="ho-ic">🎯</div>
+      <div class="ho-txt">
+        <div class="ho-t">Умная буква</div>
+        <div class="ho-d">Из самого длинного неразгаданного слова</div>
+      </div>
+      <div class="ho-cost">40 ◈</div>
+    </button>
+    <button class="hint-option" id="hintWord">
+      <div class="ho-ic">⚡</div>
+      <div class="ho-txt">
+        <div class="ho-t">Открыть слово</div>
+        <div class="ho-d">Самое короткое из неразгаданных</div>
+      </div>
+      <div class="ho-cost">100 ◈</div>
+    </button>
+    <button class="btn-ghost" id="closeHintBtn">← Назад</button>
+  </div>
+</div>
+
+<div class="overlay" id="wordsOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Все слова</h2>
+    <p id="wordsProgress">Найдено: 0 / 0</p>
+    <div class="word-list-grid" id="wordListGrid"></div>
+    <button class="btn-ghost" id="closeWordsBtn">← Назад</button>
+  </div>
+</div>
+
+<div class="overlay" id="lengthsOverlay">
+  <div class="overlay-card">
+    <button class="overlay-close" data-close>✕</button>
+    <h2>Длины слов</h2>
+    <p id="lengthsText">Сколько слов какой длины осталось найти</p>
+    <div class="len-grid" id="lenGrid"></div>
+    <button class="btn-ghost" id="closeLengthsBtn">← Назад</button>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+  { name:'Начало', letters:['К','Р','О','Т','А'],
+    main:['КРОТ','КОРА','РОТА','АКТ','РАК','КОТ','ТОК','РОТ'],
+    bonus:['ТАРО','КАРА'], secret:[] },
+  { name:'Столб', letters:['С','Т','О','Л','Б'],
+    main:['СТОЛБ','СТОЛ','БОЛТ','СЛОТ','ЛОБ','БОТ','ЛОТ','ТОЛ'],
+    bonus:['СОТ'], secret:[] },
+  { name:'Домик', letters:['Д','О','М','И','К'],
+    main:['ДОМИК','ДОМ','КОД','ДОК','КОМ','МОД'],
+    bonus:['МИД'], secret:[] },
+  { name:'Полёт', letters:['П','О','Л','Е','Т'],
+    main:['ПОЛЕТ','ПОЛЕ','ЛЕТО','ТЕЛО','ПЛОТ','ПОЛ','ЛОТ','ТОП'],
+    bonus:['ТОЛ','ПОТ'], secret:[] },
+  { name:'Карта', letters:['К','А','Р','Т','А'],
+    main:['КАРТА','КАРАТ','ТАРА','КАРА','РАК','АКТ','АРА'],
+    bonus:['КАТ','ТАК'], secret:[] },
+  { name:'Собака', letters:['С','О','Б','А','К','А'],
+    main:['СОБАКА','КОСА','БОКА','ОСА','БАК','СОК'],
+    bonus:['БАС','КОС'], secret:['КОБА'] },
+  { name:'Ракета', letters:['Р','А','К','Е','Т','А'],
+    main:['РАКЕТА','КАРЕТА','КАТЕР','АКТЕР','РЕКА','КАРТА'],
+    bonus:['РАК','АКТ','КАТ','ТАК'], secret:['АРА'] },
+  { name:'Подарок', letters:['П','О','Д','А','Р','О','К'],
+    main:['ПОДАРОК','ПОРОДА','ОПОРА','ПОРА','РОД','ДОК'],
+    bonus:['КОД','ПАР','РАК','ПОД','РОК'], secret:['КОРА'] },
+  { name:'Лампа', letters:['Л','А','М','П','А'],
+    main:['ЛАМПА','ЛАПА','МАЛА','ЛАМА','ПАЛ'],
+    bonus:[], secret:[] },
+  { name:'Звезда', letters:['З','В','Е','Е','З','Д','А'],
+    main:['ЗВЕЗДА','ЕЗДА','ДЕВА'],
+    bonus:['ЗАЕЗД'], secret:['ВЕЗДЕ'] },
+  { name:'Ветер', letters:['В','Е','Т','Е','Р'],
+    main:['ВЕТЕР','РЕВ','ВЕТ'],
+    bonus:[], secret:['ВЕЕР'] },
+  { name:'Море', letters:['М','О','Р','Е','В'],
+    main:['МОРЕ','РОВ','ВОР','МОР','РЕВ'],
+    bonus:['ВОР'], secret:[] },
+  { name:'Садик', letters:['С','А','Д','И','К'],
+    main:['САДИК','САД','ДИСК'],
+    bonus:['КИСА'], secret:['АДИК'] },
+  { name:'Лето', letters:['Л','Е','Т','О','К'],
+    main:['ЛЕТО','ЛОТ','ТОК','КОТ','ТЕЛО'],
+    bonus:['ОТЕЛ'], secret:['ЛЕТОК'] },
+  { name:'Город', letters:['Г','О','Р','О','Д','А'],
+    main:['ГОРОД','ГОРА','РОГ','ОДА','РОД'],
+    bonus:['ДОГ'], secret:[] }
+];
+
+const HINT_LETTER_COST = 25;
+const HINT_SMART_COST  = 40;
+const HINT_WORD_COST   = 100;
+const SKIP_COST        = 300;
+const ACH_REWARD       = 50;
+const COMBO_TIMEOUT    = 12000;
+const FAST_TIME_BONUS_MS = 90000;
+const FAST_TIME_BONUS_COINS = 20;
+const STORAGE_KEY      = 'wordgame_ultimate_v6';
+const COMBO_MILESTONES = [5, 10, 15, 20, 25];
+const STREAK_REWARDS   = [20, 30, 50, 80, 120, 200];
+
+const ACHIEVEMENTS = [
+  { id:'first',    ic:'🌱', t:'Первое слово',   d:'Найди первое слово',           goal:1,   get:(s)=>s.words },
+  { id:'ten',      ic:'📗', t:'Десятка',        d:'Найди 10 слов',                goal:10,  get:(s)=>s.words },
+  { id:'fifty',    ic:'📘', t:'Полтинник',      d:'Найди 50 слов',                goal:50,  get:(s)=>s.words },
+  { id:'hundred',  ic:'📚', t:'Сотня',          d:'Найди 100 слов',               goal:100, get:(s)=>s.words },
+  { id:'bonus10',  ic:'💎', t:'Кладоискатель',  d:'Найди 10 бонусных слов',       goal:10,  get:(s)=>s.bonus },
+  { id:'bonus50',  ic:'💠', t:'Охотник',        d:'Найди 50 бонусных слов',       goal:50,  get:(s)=>s.bonus },
+  { id:'perfect',  ic:'⭐', t:'Перфекционист',  d:'Пройди уровень на 3 звезды',   goal:1,   get:(s)=>s.perfects },
+  { id:'perfect5', ic:'🌟', t:'Идеальный',      d:'Пройди 5 уровней на 3 звезды', goal:5,   get:(s)=>s.perfects },
+  { id:'combo5',   ic:'🔥', t:'Комбо-мастер',   d:'Собери комбо из 5 слов',       goal:5,   get:(s)=>s.maxCombo },
+  { id:'rich',     ic:'💰', t:'Богач',          d:'Накопи 300 монет',             goal:300, get:(s)=>s.maxCoins },
+  { id:'rich1000', ic:'👑', t:'Миллионер',      d:'Накопи 1000 монет',            goal:1000,get:(s)=>s.maxCoins },
+  { id:'finish',   ic:'🏁', t:'Финалист',       d:'Пройди все 15 уровней',        goal:15,  get:(s)=>s.uniqueLevels },
+  { id:'streak3',  ic:'🔥', t:'В ударе',        d:'Заходи 3 дня подряд',          goal:3,   get:(s)=>s.bestStreak },
+  { id:'speed',    ic:'⚡', t:'Скоростной',     d:'Пройди уровень быстрее 60 сек', goal:1,  get:(s)=>s.fastWins }
+];
+
+const QUEST_POOL = [
+  { id:'find_words',  ic:'📝', t:'Найди {n} слов',              goal:[5,10,15], reward:[30,60,100] },
+  { id:'find_bonus',  ic:'💎', t:'Найди {n} бонусных слов',      goal:[2,3,5],   reward:[40,70,110] },
+  { id:'no_hint_lvl', ic:'🎯', t:'Пройди уровень без подсказок', goal:[1],       reward:[50] },
+  { id:'combo3',      ic:'🔥', t:'Собери комбо из {n} слов',     goal:[3,4,5],   reward:[35,55,85] },
+  { id:'perfect_lvl', ic:'⭐', t:'Пройди уровень на 3 звезды',   goal:[1,2],     reward:[60,120] },
+  { id:'play_levels', ic:'🎮', t:'Пройди {n} уровней',           goal:[2,3,4],   reward:[40,70,100] }
+];
+
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const rand = (n)=> (Math.random()*n)|0;
+
+function shuffleArr(a){
+  const arr = [...a];
+  for(let i=arr.length-1;i>0;i--){
+    const j = rand(i+1);
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+function norm(s){ return String(s).toUpperCase().replace(/Ё/g,'Е').replace(/\s+/g,''); }
+function vibrate(p){ if(state.settings.haptics && navigator.vibrate){ try{navigator.vibrate(p);}catch(e){} } }
+function todayKey(){ const d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function yesterdayKey(){
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function hashCode(s){
+  let h = 0;
+  for(let i=0;i<s.length;i++) h = ((h<<5)-h) + s.charCodeAt(i), h|=0;
+  return Math.abs(h);
+}
+function formatNum(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F'); }
+function formatTime(ms){
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+function pluralDays(n){
+  const a = n % 10, b = n % 100;
+  if(a === 1 && b !== 11) return 'день';
+  if(a >= 2 && a <= 4 && (b < 12 || b > 14)) return 'дня';
+  return 'дней';
+}
+
+let audioCtx = null;
+function initAudio(){
+  if(!state.settings.sound) return;
+  try{
+    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }catch(e){}
+}
+function tone(freq, dur, type='sine', vol=0.07, delay=0){
+  if(!state.settings.sound || !audioCtx) return;
+  const t0 = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.05);
+}
+const sfx = {
+  tap:      ()=> tone(620,0.05,'sine',0.035),
+  select:   ()=> tone(880,0.06,'sine',0.05),
+  deselect: ()=> tone(520,0.05,'sine',0.04),
+  wrong:    ()=>{ tone(220,0.14,'sawtooth',0.05); tone(160,0.20,'sawtooth',0.05,0.08); },
+  found:    (len)=>{
+    const base = 480 + len*28;
+    tone(base,0.10,'sine',0.08);
+    tone(base*1.26,0.12,'sine',0.07,0.06);
+    tone(base*1.5,0.14,'sine',0.06,0.12);
+  },
+  bonus:    ()=>{ tone(900,0.08,'triangle',0.06); tone(1250,0.11,'triangle',0.06,0.06); },
+  secret:   ()=>{ tone(1400,0.10,'triangle',0.07); tone(1800,0.12,'triangle',0.06,0.06); tone(2200,0.14,'triangle',0.05,0.12); },
+  hint:     ()=>{ tone(1300,0.12,'sine',0.05); tone(1700,0.14,'sine',0.05,0.09); },
+  level:    ()=> [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.25,'triangle',0.08,i*0.11)),
+  ach:      ()=> [880,1047,1319,1760].forEach((f,i)=>tone(f,0.20,'triangle',0.07,i*0.09)),
+  quest:    ()=> [660,880,1100].forEach((f,i)=>tone(f,0.18,'sine',0.07,i*0.08)),
+  coin:     ()=>{ tone(1400,0.06,'square',0.03); tone(1900,0.08,'square',0.03,0.04); },
+  comboEnd: ()=> tone(300,0.15,'sine',0.04),
+  comboMil: (n)=> [1200+n*40, 1500+n*40, 1900+n*40].forEach((f,i)=>tone(f,0.13,'triangle',0.06,i*0.06)),
+  streak:   ()=> [523,659,784,1047].forEach((f,i)=>tone(f,0.20,'triangle',0.08,i*0.09)),
+  record:   ()=>{ tone(880,0.10,'triangle',0.08); tone(1100,0.12,'triangle',0.08,0.08); tone(1400,0.14,'triangle',0.07,0.16); }
+};
+
+const state = {
+  coins: 0,
+  levelIndex: 0,
+  maxLevelUnlocked: 0,
+  stars: {},
+  bestTimes: {},
+  fastWonLevels: new Set(),
+  achievements: new Set(),
+  stats: { words:0, bonus:0, perfects:0, maxCombo:0, levelsCompleted:0, maxCoins:0, uniqueLevels:0, bestStreak:0, fastWins:0 },
+  settings: { sound:true, haptics:true, ambient:true, theme:'dark' },
+  quests: { date:'', items:[], progress:{} },
+  streak: { count:0, lastDay:'', best:0 },
+  levelProgress: {},
+  seenSplash: false,
+
+  placements: [], cellMap: new Map(), rows:0, cols:0,
+  mainWords: [], bonusWords: [], secretWords: [],
+  allWords: new Set(), prefixes: new Set(),
+  foundMain: new Set(), foundBonus: new Set(), foundSecret: new Set(),
+  current: [], wheelLetters: [], letterEls: [], cellEls: new Map(),
+  locked: false, readyToSubmit: false, hintsUsed: 0, combo: 0,
+  todayProgress: { noHintLevels:0, maxComboToday:0, perfectsToday:0, levelsToday:0 },
+  levelHadHint: false, almostShown: false, completedBadge: false, levelCompleting: false,
+  levelStartTime: 0, levelElapsed: 0, levelPausedAt: 0
+};
+
+const storage = {
+  load(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null; }catch(e){ return null; } },
+  save(d){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }catch(e){} },
+  clear(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} }
+};
+
+let saveTimer = null;
+function saveProgress(immediate=false){
+  const data = {
+    coins: state.coins, levelIndex: state.levelIndex, maxLevelUnlocked: state.maxLevelUnlocked,
+    stars: state.stars, bestTimes: state.bestTimes,
+    fastWonLevels: [...state.fastWonLevels],
+    achievements: [...state.achievements], stats: state.stats,
+    settings: state.settings, quests: state.quests, streak: state.streak,
+    levelProgress: state.levelProgress, seenSplash: state.seenSplash,
+    todayProgress: state.todayProgress
+  };
+  if(immediate){ clearTimeout(saveTimer); storage.save(data); return; }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=> storage.save(data), 350);
+}
+
+function restoreProgress(){
+  const d = storage.load();
+  if(!d || typeof d !== 'object' || Array.isArray(d)) return false;
+  state.coins = Math.max(0, Number(d.coins) || 0);
+  state.levelIndex = Math.max(0, Math.min(Number(d.levelIndex) || 0, LEVELS.length-1));
+  state.stars = (d.stars && typeof d.stars === 'object' && !Array.isArray(d.stars)) ? d.stars : {};
+  state.bestTimes = (d.bestTimes && typeof d.bestTimes === 'object' && !Array.isArray(d.bestTimes)) ? d.bestTimes : {};
+  state.fastWonLevels = new Set(Array.isArray(d.fastWonLevels) ? d.fastWonLevels : []);
+  state.achievements = new Set(Array.isArray(d.achievements) ? d.achievements : []);
+  state.stats = Object.assign({ words:0, bonus:0, perfects:0, maxCombo:0, levelsCompleted:0, maxCoins:0, uniqueLevels:0, bestStreak:0, fastWins:0 }, d.stats || {});
+  state.settings = Object.assign({ sound:true, haptics:true, ambient:true, theme:'dark' }, d.settings || {});
+  state.streak = Object.assign({ count:0, lastDay:'', best:0 }, d.streak || {});
+  state.todayProgress = Object.assign({ noHintLevels:0, maxComboToday:0, perfectsToday:0, levelsToday:0 }, d.todayProgress || {});
+
+  if(d.quests && typeof d.quests === 'object' && Array.isArray(d.quests.items)){
+    state.quests = {
+      date: typeof d.quests.date === 'string' ? d.quests.date : '',
+      items: d.quests.items.filter(q => q && typeof q === 'object' && typeof q.id === 'string'),
+      progress: (d.quests.progress && typeof d.quests.progress === 'object' && !Array.isArray(d.quests.progress)) ? d.quests.progress : {}
+    };
+  } else {
+    state.quests = { date:'', items:[], progress:{} };
+  }
+
+  if(d.levelProgress && typeof d.levelProgress === 'object' && !Array.isArray(d.levelProgress)){
+    state.levelProgress = d.levelProgress;
+  } else {
+    state.levelProgress = {};
+  }
+
+  state.seenSplash = !!d.seenSplash;
+
+  // ИСПРАВЛЕНО: валидация уровня не только по индексу, но и по структуре полей.
+  // Раньше строка вместо массива в main/bonus/secret могла привести к мусорному
+  // состоянию при восстановлении (итерация по символам строки).
+  for(const k in state.levelProgress){
+    const n = Number(k);
+    const p = state.levelProgress[k];
+    const validIdx = Number.isInteger(n) && n >= 0 && n < LEVELS.length;
+    const validShape = p && typeof p === 'object'
+      && (p.main === undefined || Array.isArray(p.main))
+      && (p.bonus === undefined || Array.isArray(p.bonus))
+      && (p.secret === undefined || Array.isArray(p.secret))
+      && (p.revealedKeys === undefined || Array.isArray(p.revealedKeys));
+    if(!validIdx || !validShape){
+      delete state.levelProgress[k];
+    }
+  }
+
+  const starsCompleted = Object.keys(state.stars)
+    .map(Number)
+    .filter(k => !isNaN(k) && k >= 0 && k < LEVELS.length && state.stars[k] > 0);
+  state.maxLevelUnlocked = Math.max(
+    Number(d.maxLevelUnlocked) || 0, state.levelIndex,
+    starsCompleted.length ? Math.max(...starsCompleted) + 1 : 0, 0
+  );
+
+  if(state.coins > state.stats.maxCoins) state.stats.maxCoins = state.coins;
+  if(state.stats.uniqueLevels === 0 && starsCompleted.length) state.stats.uniqueLevels = starsCompleted.length;
+  if(state.streak.best > state.stats.bestStreak) state.stats.bestStreak = state.streak.best;
+
+  let healed = false;
+  for(const k in state.levelProgress){
+    const idx = Number(k);
+    const p = state.levelProgress[idx];
+    if(!p || !Array.isArray(p.main)) continue;
+    const lvl = LEVELS[idx];
+    if(!lvl) continue;
+    const mainNorm = new Set(lvl.main.map(norm));
+    const foundCount = p.main.filter(w => mainNorm.has(w)).length;
+    const totalMain = mainNorm.size;
+
+    if(foundCount >= totalMain && totalMain > 0){
+      if(!state.stars[idx] || state.stars[idx] === 0){
+        state.stars[idx] = 1;
+        state.stats.uniqueLevels++;
+      }
+      state.maxLevelUnlocked = Math.max(state.maxLevelUnlocked, idx + 1);
+      delete state.levelProgress[idx];
+      healed = true;
+    }
+  }
+
+  if(healed) saveProgress(true);
+
+  return true;
+}
+
+function generateCrossword(words){
+  const sorted = [...words].sort((a,b)=> b.length - a.length || a.localeCompare(b));
+  const grid = new Map();
+  const placements = [];
+  const unplaced = [];
+  const key = (r,c)=> r+','+c;
+  const get = (r,c)=> grid.get(key(r,c));
+  function fits(word, r, c, dir){
+    const dr = dir==='v'?1:0, dc = dir==='h'?1:0;
+    if(get(r-dr, c-dc)) return -1;
+    if(get(r+dr*word.length, c+dc*word.length)) return -1;
+    let cross = 0;
+    for(let i=0;i<word.length;i++){
+      const rr = r+dr*i, cc = c+dc*i;
+      const cur = get(rr,cc);
+      if(cur){
+        if(cur !== word[i]) return -1;
+        cross++;
+      }else{
+        if(dir==='h'){
+          if(get(rr-1,cc) || get(rr+1,cc)) return -1;
+        }else{
+          if(get(rr,cc-1) || get(rr,cc+1)) return -1;
+        }
+      }
+    }
+    if(cross === word.length) return -1;
+    return cross;
+  }
+  function place(word, r, c, dir){
+    const dr = dir==='v'?1:0, dc = dir==='h'?1:0;
+    for(let i=0;i<word.length;i++) grid.set(key(r+dr*i, c+dc*i), word[i]);
+    placements.push({word, r, c, dir});
+  }
+  if(!sorted.length) return {placements, unplaced};
+  place(sorted[0], 0, 0, 'h');
+  for(let i=1;i<sorted.length;i++){
+    const word = sorted[i];
+    let best = null;
+    for(const [k,ch] of grid){
+      const [r,c] = k.split(',').map(Number);
+      for(let j=0;j<word.length;j++){
+        if(word[j]!==ch) continue;
+        for(const dir of ['h','v']){
+          const sr = dir==='v'? r-j : r;
+          const sc = dir==='h'? c-j : c;
+          const cross = fits(word, sr, sc, dir);
+          if(cross > 0){
+            const score = cross*1000 - (Math.abs(sr)+Math.abs(sc));
+            if(!best || score > best.score) best = {word,sr,sc,dir,score};
+          }
+        }
+      }
+    }
+    if(best) place(best.word, best.sr, best.sc, best.dir);
+    else unplaced.push(word);
+  }
+  return {placements, unplaced};
+}
+function generateBestCrossword(words){
+  let best = null;
+  for(let a=0; a<28; a++){
+    const result = generateCrossword(shuffleArr(words));
+    if(!best || result.placements.length > best.placements.length) best = result;
+    if(best.placements.length === words.length) break;
+  }
+  return best;
+}
+
+class Confetti {
+  constructor(c){
+    this.c = c; this.ctx = c.getContext('2d');
+    this.particles = []; this.raf = null;
+    this.resize();
+    window.addEventListener('resize', ()=>this.resize());
+  }
+  resize(){
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    this.c.width = innerWidth*dpr; this.c.height = innerHeight*dpr;
+    this.c.style.width = innerWidth+'px'; this.c.style.height = innerHeight+'px';
+    this.ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  burst(x,y,count=100){
+    const colors = ['#ffd979','#ffb703','#4ade80','#4ecdc4','#f87171','#a78bfa','#ffffff','#00d9c0'];
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2;
+      const sp = 3 + Math.random()*10;
+      this.particles.push({
+        x,y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 5,
+        size:5+Math.random()*8, color: colors[rand(colors.length)],
+        rot: Math.random()*Math.PI*2, vr:(Math.random()-.5)*.4,
+        life:1, shape: Math.random()<.5?'r':'c'
+      });
+    }
+    this.start();
+  }
+  start(){
+    if(this.raf) return;
+    const step = ()=>{
+      const W = innerWidth, H = innerHeight;
+      this.ctx.clearRect(0,0,W,H);
+      this.particles = this.particles.filter(p=>p.life>0 && p.y<H+60);
+      for(const p of this.particles){
+        p.x += p.vx; p.y += p.vy; p.vy += 0.28;
+        p.vx *= 0.99; p.rot += p.vr; p.life -= 0.010;
+        this.ctx.save();
+        this.ctx.globalAlpha = Math.max(0,p.life);
+        this.ctx.translate(p.x,p.y); this.ctx.rotate(p.rot);
+        this.ctx.fillStyle = p.color;
+        if(p.shape==='c'){ this.ctx.beginPath(); this.ctx.arc(0,0,p.size/2,0,Math.PI*2); this.ctx.fill(); }
+        else { this.ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*.62); }
+        this.ctx.restore();
+      }
+      if(this.particles.length) this.raf = requestAnimationFrame(step);
+      else { this.raf = null; this.ctx.clearRect(0,0,W,H); }
+    };
+    step();
+  }
+}
+class Ambient {
+  constructor(c){
+    this.c = c; this.ctx = c.getContext('2d');
+    this.dots = []; this.raf = null; this._pausedByVisibility = false;
+    this.resize();
+    window.addEventListener('resize', ()=>this.resize());
+  }
+  resize(){
+    const dpr = Math.min(devicePixelRatio||1, 2);
+    this.c.width = innerWidth*dpr; this.c.height = innerHeight*dpr;
+    this.c.style.width = innerWidth+'px'; this.c.style.height = innerHeight+'px';
+    this.ctx.setTransform(dpr,0,0,dpr,0,0);
+    this.spawn();
+  }
+  spawn(){
+    const count = Math.min(55, Math.floor(innerWidth/18));
+    this.dots = [];
+    for(let i=0;i<count;i++){
+      this.dots.push({
+        x: Math.random()*innerWidth, y: Math.random()*innerHeight,
+        r: 1 + Math.random()*2.4, vy: .08 + Math.random()*.25,
+        vx: (Math.random()-.5)*.15, a: .15 + Math.random()*.4,
+        hue: Math.random()<.5 ? 45 : 175
+      });
+    }
+  }
+  start(){
+    if(this.raf) return;
+    const step = ()=>{
+      const W = innerWidth, H = innerHeight;
+      this.ctx.clearRect(0,0,W,H);
+      for(const d of this.dots){
+        d.x += d.vx; d.y += d.vy;
+        if(d.y > H+10){ d.y = -10; d.x = Math.random()*W; }
+        if(d.x < -10) d.x = W+10;
+        if(d.x > W+10) d.x = -10;
+        this.ctx.beginPath();
+        this.ctx.fillStyle = `hsla(${d.hue},80%,65%,${d.a})`;
+        this.ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+        this.ctx.fill();
+      }
+      this.raf = requestAnimationFrame(step);
+    };
+    step();
+  }
+  stop(){
+    if(this.raf){ cancelAnimationFrame(this.raf); this.raf = null; }
+    this.ctx.clearRect(0,0,innerWidth,innerHeight);
+  }
+}
+const confetti = new Confetti($('#confetti'));
+const ambient = new Ambient($('#ambient'));
+
+const boardEl       = $('#board');
+const boardArea     = $('#boardArea');
+const wheelEl       = $('#wheel');
+const wheelWrap     = $('#wheelWrap');
+const wheelLines    = $('#wheelLines');
+const currentWordEl = $('#currentWord');
+const checkBtn      = $('#checkBtn');
+const bonusRow      = $('#bonusRow');
+const levelNumEl    = $('#levelNum');
+const levelTotalEl  = $('#levelTotal');
+const coinsEl       = $('#coins');
+const coinPill      = $('#coinPill');
+const progressFill  = $('#progressFill');
+const progressText  = $('#progressText');
+const timerDisplay  = $('#timerDisplay');
+const comboEl       = $('#combo');
+const comboBar      = $('#comboBar');
+const toastStack    = $('#toastStack');
+
+let timerInterval = null;
+
+function _tick(){
+  if(state.locked) return;
+  if(state.levelPausedAt) return;
+  if(state.levelStartTime <= 0) return;
+  state.levelElapsed = Date.now() - state.levelStartTime;
+  updateTimerDisplay();
+}
+
+function startLevelTimer(initialElapsed=0){
+  state.levelPausedAt = 0;
+  if(initialElapsed > 0){
+    state.levelStartTime = Date.now() - initialElapsed;
+    state.levelElapsed = initialElapsed;
+  } else {
+    state.levelStartTime = Date.now();
+    state.levelElapsed = 0;
+  }
+  updateTimerDisplay();
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(_tick, 1000);
+}
+
+function resumeLevelTimer(){
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(_tick, 1000);
+}
+
+function stopLevelTimer(){
+  if(state.levelStartTime > 0 && !state.levelPausedAt){
+    state.levelElapsed = Date.now() - state.levelStartTime;
+  }
+  state.levelPausedAt = 0;
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  updateTimerDisplay();
+}
+
+function pauseLevelTimer(){
+  if(state.locked) return;
+  if(state.levelStartTime <= 0) return;
+  if(!state.levelPausedAt){
+    state.levelPausedAt = Date.now();
+    state.levelElapsed = state.levelPausedAt - state.levelStartTime;
+    updateTimerDisplay();
+  }
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+}
+
+function unpauseLevelTimer(){
+  if(!state.levelPausedAt) return;
+  state.levelStartTime += (Date.now() - state.levelPausedAt);
+  state.levelPausedAt = 0;
+  state.levelElapsed = Date.now() - state.levelStartTime;
+  updateTimerDisplay();
+  resumeLevelTimer();
+}
+
+function updateTimerDisplay(){
+  timerDisplay.textContent = formatTime(state.levelElapsed);
+}
+
+function syncLevelElapsed(){
+  if(state.locked) return;
+  if(state.levelPausedAt) return;
+  if(state.levelStartTime > 0){
+    state.levelElapsed = Date.now() - state.levelStartTime;
+    updateTimerDisplay();
+  }
+}
+
+let comboTimer = null;
+let rejectTimer = null;
+
+function buildLevel(idx){
+  if(typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= LEVELS.length) idx = 0;
+
+  if(state.placements.length > 0 && state.levelIndex !== idx && !state.locked){
+    saveLevelProgress();
+    saveProgress(true);
+  }
+
+  const lvl = LEVELS[idx];
+  // ИСПРАВЛЕНО: дедупликация слов перед генерацией — защита от опечаток в данных.
+  // Если main содержит дубликаты (после norm), foundMain.size никогда не сравняется
+  // с mainWords.length, и уровень станет непроходимым.
+  const uniqueMain = [...new Set(lvl.main.map(norm))];
+  const gen = generateBestCrossword(uniqueMain);
+  const placements = gen.placements;
+
+  if(placements.length){
+    let minR = Infinity, minC = Infinity;
+    for(const p of placements){ minR = Math.min(minR, p.r); minC = Math.min(minC, p.c); }
+    for(const p of placements){ p.r -= minR; p.c -= minC; }
+  }
+
+  const cellMap = new Map();
+  for(const p of placements){
+    const dr = p.dir==='v'?1:0, dc = p.dir==='h'?1:0;
+    p.cellKeys = [];
+    for(let i=0;i<p.word.length;i++){
+      const r = p.r+dr*i, c = p.c+dc*i, k = r+','+c;
+      p.cellKeys.push(k);
+      if(!cellMap.has(k)) cellMap.set(k, {r,c,letter:p.word[i],revealed:false});
+    }
+  }
+
+  let rows=0, cols=0;
+  for(const p of placements){
+    const h = p.dir==='v'?p.word.length:1;
+    const w = p.dir==='h'?p.word.length:1;
+    rows = Math.max(rows, p.r+h);
+    cols = Math.max(cols, p.c+w);
+  }
+
+  const mainWords = placements.map(p=>p.word);
+  const bonusWords = [...new Set((lvl.bonus||[]).map(norm))]
+    .filter(w => !mainWords.includes(w));
+  const secretWords = [...new Set((lvl.secret||[]).map(norm))]
+    .filter(w => !mainWords.includes(w) && !bonusWords.includes(w));
+
+  const allWords = new Set([...mainWords,...bonusWords,...secretWords]);
+  const prefixes = new Set();
+  for(const w of allWords){ for(let i=1;i<=w.length;i++) prefixes.add(w.slice(0,i)); }
+
+  const prevIdx = state.levelIndex;
+
+  state.levelIndex = idx;
+  state.placements = placements;
+  state.cellMap = cellMap;
+  state.rows = rows; state.cols = cols;
+  state.mainWords = mainWords;
+  state.bonusWords = bonusWords;
+  state.secretWords = secretWords;
+  state.allWords = allWords;
+  state.prefixes = prefixes;
+  state.foundMain = new Set();
+  state.foundBonus = new Set();
+  state.foundSecret = new Set();
+  state.current = [];
+  state.wheelLetters = shuffleArr(lvl.letters.map(norm));
+  state.letterEls = [];
+  state.cellEls = new Map();
+  state.locked = false;
+  state.readyToSubmit = false;
+  state.hintsUsed = 0;
+  state.combo = 0;
+  state.levelHadHint = false;
+  state.almostShown = false;
+  state.completedBadge = false;
+  state.levelCompleting = false;
+  state.levelPausedAt = 0;
+
+  clearTimeout(comboTimer);
+  clearTimeout(rejectTimer);
+  rejectTimer = null;
+  comboBar.classList.remove('show');
+  comboEl.classList.remove('show');
+
+  const oldBadge = boardArea.querySelector('.completed-badge');
+  if(oldBadge) oldBadge.remove();
+
+  let initialElapsed = 0;
+  const saved = state.levelProgress[idx];
+  if(saved){
+    for(const w of saved.main||[]) if(mainWords.includes(w)) state.foundMain.add(w);
+    for(const w of saved.bonus||[]) if(bonusWords.includes(w)) state.foundBonus.add(w);
+    for(const w of saved.secret||[]) if(secretWords.includes(w)) state.foundSecret.add(w);
+    state.hintsUsed = saved.hintsUsed || 0;
+    state.levelHadHint = saved.levelHadHint || false;
+    initialElapsed = saved.elapsed || 0;
+
+    if(Array.isArray(saved.revealedKeys)){
+      for(const k of saved.revealedKeys){
+        const cell = cellMap.get(k);
+        if(cell) cell.revealed = true;
+      }
+    } else {
+      for(const p of placements){
+        if(state.foundMain.has(p.word)){
+          for(const k of p.cellKeys){
+            const cell = cellMap.get(k);
+            if(cell) cell.revealed = true;
+          }
+        }
+      }
+    }
+  }
+
+  renderBoard();
+  applyFoundState();
+  buildWheel();
+  updateCurrent();
+  updateHud();
+  bonusRow.innerHTML = '';
+  renderBonusChips();
+  updateHintBtnState();
+
+  if(state.foundMain.size === state.mainWords.length && state.mainWords.length > 0){
+    state.locked = true;
+    showCompletedBadge();
+    setTimeout(()=> showToast('Уровень уже пройден', 'quest'), 500);
+    state.levelElapsed = state.bestTimes[idx] || initialElapsed || 0;
+    if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+    updateTimerDisplay();
+    updateHintBtnState();
+    updateCurrent();
+  } else {
+    startLevelTimer(initialElapsed);
+  }
+
+  if(prevIdx !== idx){
+    setTimeout(()=> showToast(`Уровень ${idx+1} · ${lvl.name}`, 'quest'), 350);
+  }
+
+  requestAnimationFrame(()=>{ layoutBoard(); drawLines(); });
+}
+
+function showCompletedBadge(){
+  if(state.completedBadge) return;
+  const el = document.createElement('div');
+  el.className = 'completed-badge';
+  el.textContent = '✓ Уровень пройден';
+  boardArea.appendChild(el);
+  state.completedBadge = true;
+}
+
+function renderBoard(){
+  boardEl.innerHTML = '';
+  state.cellEls = new Map();
+  const frag = document.createDocumentFragment();
+  for(let r=0;r<state.rows;r++){
+    for(let c=0;c<state.cols;c++){
+      const k = r+','+c, cell = state.cellMap.get(k);
+      const el = document.createElement('div');
+      if(cell){ el.className = 'cell'; state.cellEls.set(k, el); }
+      else el.className = 'cell empty';
+      frag.appendChild(el);
+    }
+  }
+  boardEl.appendChild(frag);
+}
+function applyFoundState(){
+  for(const [k, cell] of state.cellMap){
+    if(cell.revealed){
+      const el = state.cellEls.get(k);
+      if(el){ el.textContent = cell.letter; el.classList.add('found'); }
+    }
+  }
+}
+function layoutBoard(){
+  if(!state.rows || !state.cols) return;
+  const rect = boardArea.getBoundingClientRect();
+  const gap = 4;
+  const availW = rect.width - 6, availH = rect.height - 6;
+  const cw = (availW - gap*(state.cols-1)) / state.cols;
+  const ch = (availH - gap*(state.rows-1)) / state.rows;
+  const size = Math.max(18, Math.min(cw, ch, 68));
+  const w = size*state.cols + gap*(state.cols-1);
+  const h = size*state.rows + gap*(state.rows-1);
+  boardEl.style.width = w+'px'; boardEl.style.height = h+'px';
+  boardEl.style.gridTemplateColumns = `repeat(${state.cols}, ${size}px)`;
+  boardEl.style.gridTemplateRows = `repeat(${state.rows}, ${size}px)`;
+  boardEl.style.fontSize = (size*0.5)+'px';
+}
+
+function buildWheel(){
+  wheelEl.querySelectorAll('.letter, .shuffle-btn').forEach(n=>n.remove());
+  state.letterEls = [];
+  const n = state.wheelLetters.length;
+  const frag = document.createDocumentFragment();
+  for(let i=0;i<n;i++){
+    const btn = document.createElement('button');
+    btn.className = 'letter';
+    btn.textContent = state.wheelLetters[i];
+    btn.dataset.index = i;
+    const angle = -Math.PI/2 + i*(2*Math.PI/n);
+    btn.style.left = (50 + Math.cos(angle)*36) + '%';
+    btn.style.top  = (50 + Math.sin(angle)*36) + '%';
+    frag.appendChild(btn);
+    state.letterEls.push(btn);
+  }
+  wheelEl.appendChild(frag);
+  const sh = document.createElement('button');
+  sh.className = 'shuffle-btn'; sh.innerHTML = '⇄'; sh.title = 'Перемешать';
+  sh.addEventListener('click', (e)=>{ e.stopPropagation(); shuffleWheel(); });
+  wheelEl.appendChild(sh);
+}
+function shuffleWheel(){
+  if(state.locked) return;
+  initAudio(); sfx.tap(); vibrate(8);
+  clearSelection();
+  state.wheelLetters = shuffleArr(state.wheelLetters);
+  buildWheel();
+  updateCurrent();
+  const sh = wheelEl.querySelector('.shuffle-btn');
+  if(sh){ sh.classList.add('spin'); setTimeout(()=>sh.classList.remove('spin'), 350); }
+}
+
+let dragging = false, lastHover = -1, dragMoved = false;
+
+function letterAtPoint(cx, cy){
+  const r = wheelWrap.getBoundingClientRect();
+  const px = cx - (r.left + r.width/2), py = cy - (r.top + r.height/2);
+  const dist = Math.hypot(px, py);
+  if(dist > r.width*0.44) return -1;
+  if(dist < r.width*0.16) return -1;
+  const angle = Math.atan2(py, px);
+  const n = state.wheelLetters.length;
+  let best = -1, bestDiff = Infinity;
+  for(let i=0;i<n;i++){
+    const la = -Math.PI/2 + i*(2*Math.PI/n);
+    let diff = Math.abs(angle - la);
+    if(diff > Math.PI) diff = 2*Math.PI - diff;
+    if(diff < bestDiff){ bestDiff = diff; best = i; }
+  }
+  if(bestDiff > Math.PI/n * 1.05) return -1;
+  return best;
+}
+
+function spawnSparks(x, y){
+  for(let i=0;i<6;i++){
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const angle = Math.random()*Math.PI*2;
+    const dist = 15 + Math.random()*25;
+    s.style.left = x+'px'; s.style.top = y+'px';
+    s.style.setProperty('--dx', Math.cos(angle)*dist+'px');
+    s.style.setProperty('--dy', Math.sin(angle)*dist+'px');
+    document.body.appendChild(s);
+    setTimeout(()=> s.remove(), 600);
+  }
+}
+
+function addLetter(idx, isTap=false){
+  if(state.current.includes(idx)) return false;
+  if(rejectTimer){ clearTimeout(rejectTimer); rejectTimer = null; }
+  state.current.push(idx);
+  lastHover = idx;
+  const el = state.letterEls[idx];
+  if(el){
+    el.classList.remove('press');
+    void el.offsetWidth;
+    el.classList.add('press');
+    const rect = el.getBoundingClientRect();
+    if(!isTap) spawnSparks(rect.left + rect.width/2, rect.top + rect.height/2);
+  }
+  sfx.select(); vibrate(10);
+  updateCurrent();
+  return true;
+}
+
+function handleDragStart(cx, cy){
+  const idx = letterAtPoint(cx, cy);
+  if(idx < 0) return false;
+  const lastIdx = state.current[state.current.length-1];
+  if(idx === lastIdx){
+    state.current.pop();
+    sfx.deselect(); vibrate(8);
+    updateCurrent();
+    return false;
+  }
+  if(state.current.includes(idx)) return false;
+  addLetter(idx, false);
+  return true;
+}
+function handleDragMove(cx, cy){
+  const idx = letterAtPoint(cx, cy);
+  if(idx < 0 || idx === lastHover) return;
+  const pos = state.current.indexOf(idx);
+  if(pos >= 0){
+    state.current = state.current.slice(0, pos+1);
+    lastHover = idx;
+    updateCurrent();
+    return;
+  }
+  addLetter(idx, false);
+}
+
+wheelWrap.addEventListener('pointerdown', (e)=>{
+  if(state.locked) return;
+  if(e.target.closest('.shuffle-btn')) return;
+  initAudio();
+  e.preventDefault();
+  dragMoved = false;
+  dragging = handleDragStart(e.clientX, e.clientY);
+  if(dragging){ try{ wheelWrap.setPointerCapture(e.pointerId); }catch(err){} }
+});
+wheelWrap.addEventListener('pointermove', (e)=>{
+  if(!dragging || state.locked) return;
+  e.preventDefault();
+  dragMoved = true;
+  handleDragMove(e.clientX, e.clientY);
+});
+wheelWrap.addEventListener('pointerup', (e)=>{
+  if(!dragging) return;
+  dragging = false;
+  try{ wheelWrap.releasePointerCapture(e.pointerId); }catch(err){}
+  if(dragMoved) finalizeSelection();
+  else if(state.readyToSubmit) submitWord(getCurrentWord());
+});
+wheelWrap.addEventListener('pointercancel', ()=>{
+  if(dragging) dragging = false;
+});
+
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    const open = [...$$('.overlay.show')].pop();
+    if(open && open.id !== 'splashOverlay' && open.id !== 'winOverlay'){
+      open.classList.remove('show');
+      return;
+    }
+  }
+  if(state.locked) return;
+  if(e.key === 'Backspace'){
+    e.preventDefault();
+    if(rejectTimer){ clearTimeout(rejectTimer); rejectTimer = null; }
+    if(state.current.length){ state.current.pop(); sfx.deselect(); updateCurrent(); }
+    return;
+  }
+  if(e.key === 'Enter'){
+    const w = getCurrentWord();
+    if(w.length >= 2){
+      if(state.allWords.has(w)) submitWord(w);
+      else rejectWord();
+    }
+    return;
+  }
+  const ch = norm(e.key);
+  if(ch.length === 1 && /[А-Я]/.test(ch)){
+    for(let i=0;i<state.wheelLetters.length;i++){
+      if(state.wheelLetters[i] === ch && !state.current.includes(i)){
+        addLetter(i, true);
+        break;
+      }
+    }
+  }
+});
+
+function getCurrentWord(){ return state.current.map(i=>state.wheelLetters[i]).join(''); }
+
+function clearSelection(){
+  if(rejectTimer){ clearTimeout(rejectTimer); rejectTimer = null; }
+  state.current = [];
+  state.readyToSubmit = false;
+  updateCurrent();
+}
+
+function updateCurrent(){
+  const word = getCurrentWord();
+  currentWordEl.textContent = word;
+  for(let i=0;i<state.letterEls.length;i++){
+    state.letterEls[i].classList.toggle('used', state.current.includes(i));
+  }
+  state.readyToSubmit = state.allWords.has(word) && word.length >= 2 && !state.locked;
+  currentWordEl.classList.toggle('ready', state.readyToSubmit);
+  checkBtn.disabled = state.locked || word.length < 2;
+  drawLines();
+}
+
+function drawLines(){
+  const r = wheelWrap.getBoundingClientRect();
+  if(r.width === 0) return;
+  wheelLines.setAttribute('viewBox', `0 0 ${r.width} ${r.height}`);
+  if(state.current.length < 2){ wheelLines.innerHTML = ''; return; }
+  const pts = state.current.map(i=>{
+    const b = state.letterEls[i].getBoundingClientRect();
+    return `${(b.left + b.width/2 - r.left).toFixed(1)},${(b.top + b.height/2 - r.top).toFixed(1)}`;
+  }).join(' ');
+  wheelLines.innerHTML =
+    `<polyline points="${pts}" fill="none" stroke="#ffb703" stroke-width="4"
+      stroke-linecap="round" stroke-linejoin="round" opacity="0.9"
+      style="filter:drop-shadow(0 0 6px rgba(255,183,3,.8))"/>`;
+}
+
+function finalizeSelection(){
+  const word = getCurrentWord();
+  if(word.length < 2){ clearSelection(); return; }
+  if(state.allWords.has(word)){ submitWord(word); return; }
+  if(!state.prefixes.has(word)){ rejectWord(); return; }
+}
+
+function rejectWord(){
+  sfx.wrong(); vibrate([30,40,30]);
+  state.combo = 0;
+  comboBar.classList.remove('show');
+  clearTimeout(comboTimer);
+  currentWordEl.classList.remove('shake');
+  void currentWordEl.offsetWidth;
+  currentWordEl.classList.add('shake');
+  if(rejectTimer) clearTimeout(rejectTimer);
+  rejectTimer = setTimeout(()=>{
+    rejectTimer = null;
+    state.current = [];
+    state.readyToSubmit = false;
+    updateCurrent();
+  }, 320);
+}
+
+function startComboTimer(){
+  clearTimeout(comboTimer);
+  comboBar.classList.add('show');
+  const inner = comboBar.firstElementChild;
+  inner.style.transition = 'none';
+  inner.style.transform = 'scaleX(1)';
+  void inner.offsetWidth;
+  inner.style.transition = `transform ${COMBO_TIMEOUT}ms linear`;
+  inner.style.transform = 'scaleX(0)';
+  comboTimer = setTimeout(()=>{
+    if(state.combo > 0) sfx.comboEnd();
+    state.combo = 0;
+    comboBar.classList.remove('show');
+  }, COMBO_TIMEOUT);
+}
+
+function saveLevelProgress(){
+  if(state.locked) return;
+  syncLevelElapsed();
+  const revealedKeys = [];
+  for(const [k, cell] of state.cellMap){
+    if(cell.revealed) revealedKeys.push(k);
+  }
+  state.levelProgress[state.levelIndex] = {
+    main: [...state.foundMain],
+    bonus: [...state.foundBonus],
+    secret: [...state.foundSecret],
+    revealedKeys,
+    hintsUsed: state.hintsUsed,
+    levelHadHint: state.levelHadHint,
+    elapsed: state.levelElapsed || 0
+  };
+}
+
+function bumpCombo(){
+  state.combo++;
+  if(state.combo > state.stats.maxCombo) state.stats.maxCombo = state.combo;
+  if(state.combo > state.todayProgress.maxComboToday) state.todayProgress.maxComboToday = state.combo;
+  if(COMBO_MILESTONES.includes(state.combo)){
+    confetti.burst(innerWidth/2, innerHeight*0.4, 30 + state.combo);
+    sfx.comboMil(state.combo);
+    vibrate([20,30,20]);
+  }
+  updateQuestsProgress('combo3', state.combo);
+  startComboTimer();
+}
+
+function submitWord(word){
+  if(state.secretWords.includes(word)){
+    if(!state.foundSecret.has(word)){
+      state.foundSecret.add(word);
+      state.stats.bonus++;
+      bumpCombo();
+      addCoins(50);
+      sfx.secret(); vibrate(30);
+      showToast('✨ Секрет: '+word+'  +50 ◈','ach');
+      confetti.burst(innerWidth/2, innerHeight*0.4, 50);
+      renderBonusChips();
+      updateQuestsProgress('find_bonus', 1);
+      saveLevelProgress(); checkAchievements(); saveProgress();
+    } else showToast('Уже найдено','bad');
+    clearSelection(); updateHud(); return;
+  }
+  if(state.bonusWords.includes(word)){
+    if(!state.foundBonus.has(word)){
+      state.foundBonus.add(word);
+      state.stats.bonus++;
+      bumpCombo();
+      addCoins(15);
+      sfx.bonus(); vibrate(20);
+      showToast('Бонус: '+word+'  +15 ◈','good');
+      renderBonusChips();
+      updateQuestsProgress('find_bonus', 1);
+      saveLevelProgress(); checkAchievements(); saveProgress();
+    } else showToast('Уже найдено: '+word,'bad');
+    clearSelection(); updateHud(); return;
+  }
+  if(state.mainWords.includes(word)){
+    if(!state.foundMain.has(word)){
+      state.foundMain.add(word);
+      state.stats.words++;
+      bumpCombo();
+      revealWord(word);
+      const reward = word.length * 4 + Math.min(state.combo-1, 5) * 2;
+      addCoins(reward);
+      sfx.found(word.length); vibrate(25);
+      showToast('+'+reward+' ◈  '+word,'good');
+      if(state.combo >= 3) showCombo(state.combo);
+      updateQuestsProgress('find_words', 1);
+      saveLevelProgress(); checkAchievements(); saveProgress();
+      if(state.foundMain.size === state.mainWords.length - 1 && !state.almostShown){
+        state.almostShown = true;
+        setTimeout(()=> showToast('Осталось одно слово!','quest'), 900);
+      }
+    } else showToast('Уже найдено: '+word,'bad');
+    clearSelection(); updateHud();
+    if(state.foundMain.size === state.mainWords.length) levelComplete();
+    return;
+  }
+  clearSelection();
+}
+
+function revealWord(word){
+  const p = state.placements.find(pl=>pl.word === word);
+  if(!p) return;
+  p.cellKeys.forEach((k,i)=>{
+    const cell = state.cellMap.get(k);
+    const el = state.cellEls.get(k);
+    if(!cell || !el) return;
+    if(!cell.revealed){
+      cell.revealed = true;
+      el.textContent = cell.letter;
+      el.classList.remove('hinted');
+      el.classList.add('found');
+      el.style.animationDelay = (i*70)+'ms';
+      setTimeout(()=>{ el.style.animationDelay=''; }, i*70 + 500);
+    }
+  });
+}
+
+function showCombo(n){
+  comboEl.textContent = 'x'+n;
+  comboEl.classList.remove('show');
+  void comboEl.offsetWidth;
+  comboEl.classList.add('show');
+  setTimeout(()=> comboEl.classList.remove('show'), 900);
+  tone(1200 + n*100, 0.08,'triangle',0.05);
+  tone(1500 + n*100, 0.10,'triangle',0.05,0.06);
+}
+
+function renderBonusChips(){
+  const existing = new Set([...bonusRow.children].map(c => c.dataset.word));
+  const frag = document.createDocumentFragment();
+  const add = (w, secret)=>{
+    const key = (secret ? '✨' : '') + w;
+    if(existing.has(key)) return;
+    const c = document.createElement('div');
+    c.className = 'bonus-chip new' + (secret ? ' secret' : '');
+    c.dataset.word = key;
+    c.textContent = (secret ? '✨ ' : '') + w;
+    frag.appendChild(c);
+  };
+  for(const w of state.bonusWords) if(state.foundBonus.has(w)) add(w, false);
+  for(const w of state.secretWords) if(state.foundSecret.has(w)) add(w, true);
+  bonusRow.appendChild(frag);
+}
+
+function addCoins(n){
+  state.coins = Math.max(0, state.coins + n);
+  if(state.coins > state.stats.maxCoins) state.stats.maxCoins = state.coins;
+  coinsEl.textContent = formatNum(state.coins);
+  if(n > 0){
+    coinPill.classList.remove('bump');
+    void coinPill.offsetWidth;
+    coinPill.classList.add('bump');
+  }
+  updateHintBtnState();
+  checkAchievements();
+}
+
+function updateHud(){
+  levelNumEl.textContent = state.levelIndex + 1;
+  const found = state.foundMain.size, total = state.mainWords.length;
+  progressFill.style.width = (total ? (found/total)*100 : 0) + '%';
+  progressText.textContent = found + ' / ' + total;
+  coinsEl.textContent = formatNum(state.coins);
+  updateHintBtnState();
+}
+
+function updateHintBtnState(){
+  const canAfford = state.coins >= HINT_LETTER_COST && !state.locked;
+  hintBtn.disabled = !canAfford;
+}
+
+function pickHintCell(preferLong=false){
+  const candidates = [];
+  for(const p of state.placements){
+    if(state.foundMain.has(p.word)) continue;
+    p.cellKeys.forEach(k=>{
+      const cell = state.cellMap.get(k);
+      if(cell && !cell.revealed) candidates.push({k, word:p.word});
+    });
+  }
+  if(!candidates.length) return null;
+  if(preferLong){
+    candidates.sort((a,b)=> b.word.length - a.word.length);
+    const longestLen = candidates[0].word.length;
+    const longestPool = candidates.filter(c => c.word.length === longestLen);
+    return longestPool[rand(longestPool.length)];
+  }
+  return candidates[rand(candidates.length)];
+}
+
+function revealHintCell(pick){
+  const cell = state.cellMap.get(pick.k);
+  const el = state.cellEls.get(pick.k);
+  cell.revealed = true;
+  el.textContent = cell.letter;
+  el.classList.add('hinted');
+  el.style.animationDelay = '0ms';
+  state.levelHadHint = true;
+  state.hintsUsed++;
+  saveLevelProgress();
+}
+
+function hintLetter(){
+  if(state.locked) return false;
+  if(state.coins < HINT_LETTER_COST){ showToast('Не хватает монет','bad'); sfx.wrong(); return false; }
+  const pick = pickHintCell(false);
+  if(!pick){ showToast('Все буквы уже открыты'); return false; }
+  revealHintCell(pick);
+  addCoins(-HINT_LETTER_COST);
+  sfx.hint(); vibrate(15);
+  showToast('Открыта буква «'+state.cellMap.get(pick.k).letter+'»','good');
+  saveProgress(true); return true;
+}
+function hintSmart(){
+  if(state.locked) return false;
+  if(state.coins < HINT_SMART_COST){ showToast('Не хватает монет','bad'); sfx.wrong(); return false; }
+  const pick = pickHintCell(true);
+  if(!pick){ showToast('Все буквы уже открыты'); return false; }
+  revealHintCell(pick);
+  addCoins(-HINT_SMART_COST);
+  sfx.hint(); vibrate(15);
+  showToast('Умная буква: «'+state.cellMap.get(pick.k).letter+'»','good');
+  saveProgress(true); return true;
+}
+function hintWord(){
+  if(state.locked) return false;
+  if(state.coins < HINT_WORD_COST){ showToast('Не хватает монет','bad'); sfx.wrong(); return false; }
+  const remaining = state.mainWords.filter(w => !state.foundMain.has(w));
+  if(!remaining.length){ showToast('Все слова уже открыты'); return false; }
+  remaining.sort((a,b)=> a.length - b.length);
+  const word = remaining[0];
+  state.foundMain.add(word);
+  state.levelHadHint = true;
+  state.hintsUsed++;
+  revealWord(word);
+  addCoins(-HINT_WORD_COST);
+  sfx.hint(); vibrate(15);
+  showToast('Открыто слово: '+word,'good');
+  updateHud();
+
+  if(state.foundMain.size === state.mainWords.length){
+    state.locked = true;
+    stopLevelTimer();
+    checkBtn.disabled = true;
+    state.readyToSubmit = false;
+    checkAchievements();
+    updateHintBtnState();
+    levelComplete();
+  } else {
+    saveLevelProgress();
+    checkAchievements();
+    saveProgress(true);
+  }
+  return true;
+}
+
+function levelComplete(){
+  if(state.levelCompleting || state.completedBadge) return;
+  state.levelCompleting = true;
+  state.locked = true;
+  stopLevelTimer();
+  updateHintBtnState();
+  checkBtn.disabled = true;
+  state.readyToSubmit = false;
+  currentWordEl.classList.remove('ready');
+
+  state.stats.levelsCompleted++;
+  state.todayProgress.levelsToday++;
+
+  let stars = 3;
+  if(state.hintsUsed >= 4) stars = 1;
+  else if(state.hintsUsed >= 1) stars = 2;
+
+  const prev = state.stars[state.levelIndex] || 0;
+  if(stars > prev) state.stars[state.levelIndex] = stars;
+  if(prev === 0) state.stats.uniqueLevels++;
+
+  const prevBest = state.bestTimes[state.levelIndex] || 0;
+  const isRecord = state.levelElapsed > 0 && (prevBest === 0 || state.levelElapsed < prevBest);
+  if(isRecord) state.bestTimes[state.levelIndex] = state.levelElapsed;
+
+  let timeBonus = 0;
+  if(stars === 3 && state.hintsUsed === 0 && state.levelElapsed > 0 &&
+     state.levelElapsed < FAST_TIME_BONUS_MS &&
+     !state.fastWonLevels.has(state.levelIndex)){
+    timeBonus = FAST_TIME_BONUS_COINS;
+    state.fastWonLevels.add(state.levelIndex);
+    state.stats.fastWins++;
+    addCoins(timeBonus);
+  }
+
+  if(stars === 3 && prev < 3){
+    state.stats.perfects++;
+    state.todayProgress.perfectsToday++;
+    addCoins(30);
+  }
+
+  if(!state.levelHadHint) state.todayProgress.noHintLevels++;
+
+  state.maxLevelUnlocked = Math.max(state.maxLevelUnlocked, state.levelIndex + 1);
+  delete state.levelProgress[state.levelIndex];
+
+  updateQuestsProgress('play_levels', 1);
+  updateQuestsProgress('perfect_lvl', stars === 3 ? 1 : 0);
+  updateQuestsProgress('no_hint_lvl', state.levelHadHint ? 0 : 1);
+  checkAchievements();
+  saveProgress(true);
+
+  const isLast = state.levelIndex >= LEVELS.length - 1;
+  const hintsText = state.hintsUsed === 0 ? 'Без подсказок' : `Подсказок: ${state.hintsUsed}`;
+  const timeText = 'Время: ' + formatTime(state.levelElapsed);
+
+  setTimeout(()=>{
+    sfx.level();
+    vibrate([50,30,50,30,80]);
+    const cx = innerWidth/2, cy = innerHeight/2;
+    confetti.burst(cx, cy*0.7, 130);
+    setTimeout(()=> confetti.burst(cx*0.35, cy, 60), 220);
+    setTimeout(()=> confetti.burst(cx*1.65, cy, 60), 420);
+
+    $('#ovLevelLabel').textContent = `Уровень ${state.levelIndex+1} · ${LEVELS[state.levelIndex].name}`;
+    $('#ovTitle').textContent = isLast ? 'Все уровни пройдены!' : 'Уровень пройден!';
+
+    const recSlot = $('#recordSlot');
+    recSlot.innerHTML = '';
+    if(isRecord && prevBest > 0){
+      const badge = document.createElement('div');
+      badge.className = 'record-badge';
+      badge.textContent = `🏆 Новый рекорд! Было ${formatTime(prevBest)}`;
+      recSlot.appendChild(badge);
+      sfx.record();
+    } else if(isRecord && state.levelElapsed > 0){
+      const badge = document.createElement('div');
+      badge.className = 'record-badge';
+      badge.textContent = `🏆 Первый рекорд: ${formatTime(state.levelElapsed)}`;
+      recSlot.appendChild(badge);
+    } else if(prevBest > 0){
+      const best = document.createElement('div');
+      best.className = 'record-badge';
+      best.style.background = 'var(--panel)';
+      best.style.color = 'var(--muted)';
+      best.style.boxShadow = 'none';
+      best.textContent = `Лучшее время: ${formatTime(prevBest)}`;
+      recSlot.appendChild(best);
+    }
+
+    let baseText = isLast ? 'Ты настоящий мастер слов!' :
+      (stars === 3 ? 'Идеально! Без подсказок.' :
+       stars === 2 ? 'Отлично! Попробуй без подсказок.' :
+       'Хорошо! Можно улучшить.');
+    let extra = timeText + ' · ' + hintsText;
+    if(timeBonus > 0) extra += ` · ⚡ +${timeBonus} ◈ за скорость`;
+
+    $('#ovText').innerHTML = baseText + '<br><small style="opacity:.6;font-size:11px">' + extra + '</small>';
+
+    $('#ovWords').textContent = state.foundMain.size;
+    $('#ovTime').textContent = formatTime(state.levelElapsed);
+    $('#ovCoins').textContent = formatNum(state.coins);
+    $('#nextBtn').textContent = isLast ? 'Играть заново' : 'Следующий уровень';
+
+    const starsEls = $$('#starsRow .star');
+    starsEls.forEach(el=>{ el.classList.remove('on','show'); el.style.transitionDelay = ''; });
+    setTimeout(()=>{
+      starsEls.forEach((el,i)=>{
+        el.classList.add('show');
+        el.style.transitionDelay = (i*0.14)+'s';
+        if(i < stars) el.classList.add('on');
+      });
+      sfx.ach();
+    }, 150);
+
+    $('#winOverlay').classList.add('show');
+    showCompletedBadge();
+  }, 850);
+}
+
+function unlockAch(id){
+  if(state.achievements.has(id)) return false;
+  state.achievements.add(id);
+  const a = ACHIEVEMENTS.find(x=>x.id===id);
+  if(!a) return false;
+  sfx.ach(); vibrate([40,50,40]);
+  showToast(a.ic + '  ' + a.t + '  +' + ACH_REWARD + ' ◈', 'ach');
+  state.coins += ACH_REWARD;
+  if(state.coins > state.stats.maxCoins) state.stats.maxCoins = state.coins;
+  coinsEl.textContent = formatNum(state.coins);
+  coinPill.classList.remove('bump');
+  void coinPill.offsetWidth;
+  coinPill.classList.add('bump');
+  updateHintBtnState();
+  saveProgress();
+  return true;
+}
+function checkAchievements(){
+  for(const a of ACHIEVEMENTS){
+    if(state.achievements.has(a.id)) continue;
+    const raw = a.get(state.stats);
+    const val = typeof raw === 'number' && !isNaN(raw) ? raw : 0;
+    if(val >= a.goal) unlockAch(a.id);
+  }
+}
+
+function generateDailyQuests(){
+  const t = todayKey();
+  if(state.quests.date === t && state.quests.items.length) return;
+  const seed = hashCode(t);
+  const pool = [...QUEST_POOL];
+  const items = [];
+  for(let i=0;i<3 && pool.length;i++){
+    const idx = (seed + i*7) % pool.length;
+    const proto = pool.splice(idx, 1)[0];
+    const diffIdx = (seed + i) % proto.goal.length;
+    items.push({
+      id: proto.id + '_' + i, type: proto.id, ic: proto.ic,
+      t: proto.t.replace('{n}', proto.goal[diffIdx]),
+      goal: proto.goal[diffIdx], reward: proto.reward[diffIdx], done: false
+    });
+  }
+  state.quests = { date:t, items, progress:{} };
+  state.todayProgress = { noHintLevels:0, maxComboToday:0, perfectsToday:0, levelsToday:0 };
+  saveProgress(true);
+}
+
+function updateQuestsProgress(type, value){
+  for(const q of state.quests.items){
+    if(q.type !== type) continue;
+    const cur = state.quests.progress[q.id] || 0;
+    const isCumulative = ['find_words','find_bonus','play_levels','perfect_lvl','no_hint_lvl'].includes(type);
+    let next;
+    if(type === 'combo3') next = Math.max(cur, value);
+    else if(isCumulative) next = cur + value;
+    else next = value;
+    state.quests.progress[q.id] = next;
+    if(!q.done && next >= q.goal){
+      q.done = true;
+      state.coins += q.reward;
+      if(state.coins > state.stats.maxCoins) state.stats.maxCoins = state.coins;
+      coinsEl.textContent = formatNum(state.coins);
+      coinPill.classList.remove('bump');
+      void coinPill.offsetWidth;
+      coinPill.classList.add('bump');
+      updateHintBtnState();
+      sfx.quest();
+      showToast('📋 ' + q.t + '  +' + q.reward + ' ◈', 'quest');
+      checkAchievements();
+    }
+  }
+  saveProgress();
+}
+
+function renderQuests(){
+  const list = $('#questsList');
+  list.innerHTML = '';
+  let doneCount = 0;
+  for(const q of state.quests.items){
+    const cur = state.quests.progress[q.id] || 0;
+    const pct = Math.min(100, (cur / q.goal) * 100);
+    if(q.done) doneCount++;
+    const div = document.createElement('div');
+    div.className = 'quest-item' + (q.done ? ' done' : '');
+    div.innerHTML = `
+      <div class="q-ic">${q.done ? '✓' : q.ic}</div>
+      <div class="q-txt">
+        <div class="q-t">${q.t}</div>
+        <div class="q-d">${Math.min(cur, q.goal)} / ${q.goal}</div>
+        <div class="q-bar"><div style="width:${pct}%"></div></div>
+      </div>
+      <div class="q-rew">${q.done ? '✓' : '+' + q.reward + ' ◈'}</div>`;
+    list.appendChild(div);
+  }
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate()+1);
+  tomorrow.setHours(0,0,0,0);
+  const diff = tomorrow - now;
+  const hh = Math.floor(diff/3600000);
+  const mm = Math.floor((diff%3600000)/60000);
+  $('#questsResetTime').textContent =
+    `Обновление через ${hh} ч ${mm} мин · Выполнено ${doneCount} из ${state.quests.items.length}`;
+}
+
+function updateStreak(){
+  const today = todayKey();
+  if(state.streak.lastDay === today) return 0;
+  const yesterday = yesterdayKey();
+  if(state.streak.lastDay === yesterday) state.streak.count++;
+  else state.streak.count = 1;
+
+  state.streak.lastDay = today;
+  if(state.streak.count > state.streak.best) state.streak.best = state.streak.count;
+  if(state.streak.best > state.stats.bestStreak) state.stats.bestStreak = state.streak.best;
+
+  const rewardIdx = Math.min(state.streak.count, STREAK_REWARDS.length) - 1;
+  const reward = STREAK_REWARDS[rewardIdx];
+
+  if(reward > 0){
+    state.coins += reward;
+    if(state.coins > state.stats.maxCoins) state.stats.maxCoins = state.coins;
+    coinsEl.textContent = formatNum(state.coins);
+    coinPill.classList.remove('bump');
+    void coinPill.offsetWidth;
+    coinPill.classList.add('bump');
+    updateHintBtnState();
+  }
+  saveProgress(true);
+
+  if(reward > 0){
+    setTimeout(()=>{
+      sfx.streak();
+      confetti.burst(innerWidth/2, innerHeight*0.3, 40);
+      showToast(`🔥 День ${state.streak.count} подряд!  +${reward} ◈`, 'streak');
+      checkAchievements();
+    }, 800);
+  }
+  return reward;
+}
+
+function updateStreakIndicator(){
+  const sub = $('#splashSub');
+  if(state.streak.count > 0 && state.streak.lastDay === todayKey()){
+    sub.textContent = `🔥 Стрик: ${state.streak.count} ${pluralDays(state.streak.count)}`;
+  } else {
+    sub.textContent = 'Собирай слова, открывай кроссворд';
+  }
+}
+
+function showToast(text, kind=''){
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.textContent = text;
+  toastStack.appendChild(el);
+  while(toastStack.children.length > 3){
+    const first = toastStack.firstElementChild;
+    first.classList.add('out');
+    setTimeout(()=> first.remove(), 400);
+  }
+  setTimeout(()=>{
+    el.classList.add('out');
+    setTimeout(()=> el.remove(), 400);
+  }, 1700);
+}
+
+function renderLevelMap(){
+  const map = $('#levelMap');
+  map.innerHTML = '';
+  let completed = 0;
+  for(const k in state.stars) if(state.stars[k] > 0) completed++;
+  $('#mapProgress').textContent = 'Пройдено: ' + completed + ' из ' + LEVELS.length;
+
+  for(let i=0;i<LEVELS.length;i++){
+    const unlocked = i <= state.maxLevelUnlocked;
+    const stars = state.stars[i] || 0;
+    const p = state.levelProgress[i];
+    const hasProgress = !!(p && (
+      (p.main && p.main.length > 0) ||
+      (p.bonus && p.bonus.length > 0) ||
+      (p.secret && p.secret.length > 0) ||
+      (p.revealedKeys && p.revealedKeys.length > 0) ||
+      (p.hintsUsed > 0)
+    ));
+    const btn = document.createElement('button');
+    btn.className = 'lvl-btn' + (i === state.levelIndex ? ' current' : '') + (unlocked ? '' : ' locked') + (hasProgress ? ' inprogress' : '');
+    const bestT = state.bestTimes[i];
+    const bestStr = (unlocked && bestT) ? ` · ${formatTime(bestT)}` : '';
+    btn.innerHTML =
+      `<span class="num">${i+1}</span>
+       <span class="nm">${unlocked ? LEVELS[i].name : '—'}</span>
+       <span class="lvl-stars">
+         <span class="${stars>=1?'on':''}">★</span><span class="${stars>=2?'on':''}">★</span><span class="${stars>=3?'on':''}">★</span>
+       </span>`;
+    btn.title = unlocked ? LEVELS[i].name + bestStr + (hasProgress ? ' · есть прогресс' : '') : 'Уровень заблокирован';
+    if(unlocked){
+      btn.addEventListener('click', ()=>{
+        $('#mapOverlay').classList.remove('show');
+        // Если клик на текущий НЕпройденный уровень — не пересобираем (потеряется прогресс).
+        // Если текущий уже пройден (completedBadge) — клик перезапускает уровень.
+        if(i === state.levelIndex && !state.completedBadge) return;
+        if(i === state.levelIndex && state.completedBadge){
+          delete state.levelProgress[i];
+        }
+        buildLevel(i);
+        saveProgress();
+      });
+    }
+    map.appendChild(btn);
+  }
+}
+
+function renderAchievements(){
+  const list = $('#achList');
+  list.innerHTML = '';
+  let cnt = 0;
+  for(const a of ACHIEVEMENTS){
+    const on = state.achievements.has(a.id);
+    if(on) cnt++;
+    const raw = a.get(state.stats);
+    const safeVal = typeof raw === 'number' && !isNaN(raw) ? raw : 0;
+    const cur = Math.min(a.goal, safeVal);
+    const pct = (cur / a.goal) * 100;
+    const item = document.createElement('div');
+    item.className = 'ach-item' + (on ? '' : ' locked');
+    item.innerHTML = `
+      <div class="ach-ic">${on ? a.ic : '🔒'}</div>
+      <div class="ach-txt">
+        <div class="ach-t">${a.t}</div>
+        <div class="ach-d">${a.d}</div>
+        ${!on ? `<div class="ach-prog">${cur} / ${a.goal}</div><div class="ach-bar"><div style="width:${pct}%"></div></div>` : ''}
+      </div>`;
+    list.appendChild(item);
+  }
+  $('#achProgress').textContent = 'Открыто: ' + cnt + ' из ' + ACHIEVEMENTS.length;
+}
+
+function renderWordList(){
+  const grid = $('#wordListGrid');
+  grid.innerHTML = '';
+  const addTitle = (text)=>{
+    const el = document.createElement('div');
+    el.className = 'wl-section-title';
+    el.textContent = text;
+    grid.appendChild(el);
+  };
+  const addWord = (w, cls, found)=>{
+    const el = document.createElement('div');
+    el.className = 'wl-item ' + cls + (found ? '' : ' not-found');
+    el.textContent = w;
+    grid.appendChild(el);
+  };
+  addTitle('Основные (' + state.foundMain.size + '/' + state.mainWords.length + ')');
+  state.mainWords.forEach(w => addWord(w, 'main', state.foundMain.has(w)));
+  if(state.bonusWords.length){
+    addTitle('Бонусные (' + state.foundBonus.size + '/' + state.bonusWords.length + ')');
+    state.bonusWords.forEach(w => addWord(w, 'bonus', state.foundBonus.has(w)));
+  }
+  if(state.secretWords.length){
+    addTitle('✨ Секретные (' + state.foundSecret.size + '/' + state.secretWords.length + ')');
+    state.secretWords.forEach(w => addWord(w, 'secret', state.foundSecret.has(w)));
+  }
+  const found = state.foundMain.size + state.foundBonus.size + state.foundSecret.size;
+  const total = state.mainWords.length + state.bonusWords.length + state.secretWords.length;
+  $('#wordsProgress').textContent = 'Найдено: ' + found + ' / ' + total;
+}
+
+function renderLengths(){
+  const grid = $('#lenGrid');
+  grid.innerHTML = '';
+  const byLen = new Map();
+  state.mainWords.forEach(w=>{
+    const L = w.length;
+    if(!byLen.has(L)) byLen.set(L, {total:0, found:0});
+    const s = byLen.get(L);
+    s.total++;
+    if(state.foundMain.has(w)) s.found++;
+  });
+  const lens = [...byLen.keys()].sort((a,b)=>a-b);
+  for(const L of lens){
+    const s = byLen.get(L);
+    const done = s.found === s.total;
+    const chip = document.createElement('div');
+    chip.className = 'len-chip' + (done ? ' done' : '');
+    chip.innerHTML = `
+      <span class="lc-num">${L}</span>
+      <span class="lc-lbl">${s.found}/${s.total} ${done ? '✓' : ''}</span>`;
+    grid.appendChild(chip);
+  }
+  $('#lengthsText').textContent = 'Осталось найти ' + (state.mainWords.length - state.foundMain.size) + ' слов';
+}
+
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', state.settings.theme);
+  $$('.theme-dot').forEach(d=> d.classList.toggle('sel', d.dataset.t === state.settings.theme));
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const colors = { dark:'#050d18', ocean:'#03121a', light:'#dfe7f2' };
+  if(meta) meta.setAttribute('content', colors[state.settings.theme] || '#050d18');
+}
+function bindToggle(sel, key){
+  const el = $(sel);
+  el.classList.toggle('on', !!state.settings[key]);
+  el.addEventListener('click', ()=>{
+    state.settings[key] = !state.settings[key];
+    el.classList.toggle('on', state.settings[key]);
+    saveProgress();
+    if(key === 'ambient'){ state.settings.ambient ? ambient.start() : ambient.stop(); }
+    if(key === 'sound' && state.settings.sound){ initAudio(); sfx.tap(); }
+    vibrate(10);
+  });
+}
+
+async function shareText(text){
+  if(navigator.share){
+    try{
+      await navigator.share({ title:'Слова из слов', text });
+      return true;
+    }catch(e){
+      if(e && e.name === 'AbortError') return false;
+    }
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('Скопировано в буфер обмена','good');
+    return true;
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); showToast('Скопировано','good'); }
+    catch(err){ showToast('Не удалось скопировать','bad'); }
+    ta.remove();
+  }
+  return false;
+}
+function shareResult(){
+  const stars = state.stars[state.levelIndex] || 0;
+  const starsStr = '★'.repeat(stars) + '☆'.repeat(3-stars);
+  const text =
+    `Я прошёл уровень ${state.levelIndex+1} «${LEVELS[state.levelIndex].name}» в «Слова из слов»!\n` +
+    `${starsStr}\n` +
+    `📝 Слов: ${state.foundMain.size} / ${state.mainWords.length}\n` +
+    `⏱ Время: ${formatTime(state.levelElapsed)}\n` +
+    `💎 Бонусов: ${state.foundBonus.size + state.foundSecret.size}\n` +
+    `◈ Монет: ${formatNum(state.coins)}`;
+  shareText(text);
+}
+
+function skipLevel(){
+  if(state.locked){ showToast('Сейчас нельзя','bad'); return; }
+  if(state.levelIndex >= LEVELS.length - 1){ showToast('Это последний уровень','bad'); return; }
+  if(state.coins < SKIP_COST){ showToast('Не хватает монет ('+SKIP_COST+' ◈)','bad'); sfx.wrong(); return; }
+  if(!confirm('Пропустить уровень за ' + SKIP_COST + ' монет? Звёзды не начислятся.')) return;
+  stopLevelTimer();
+  addCoins(-SKIP_COST);
+  const next = state.levelIndex + 1;
+  state.maxLevelUnlocked = Math.max(state.maxLevelUnlocked, next);
+  delete state.levelProgress[state.levelIndex];
+  $('#settingsOverlay').classList.remove('show');
+  buildLevel(next);
+  saveProgress(true);
+  showToast('Уровень пропущен','quest');
+}
+
+function addRipple(btn, e){
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height) * 1.6;
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  const x = (e.clientX || (rect.left + rect.width/2)) - rect.left - size/2;
+  const y = (e.clientY || (rect.top + rect.height/2)) - rect.top - size/2;
+  ripple.style.left = x + 'px';
+  ripple.style.top = y + 'px';
+  btn.appendChild(ripple);
+  setTimeout(()=> ripple.remove(), 650);
+}
+function bindRipples(){
+  $$('.btn-primary, .hint-option').forEach(btn => {
+    if(btn.dataset.ripple) return;
+    btn.dataset.ripple = '1';
+    btn.addEventListener('pointerdown', (e) => addRipple(btn, e));
+  });
+}
+
+checkBtn.addEventListener('click', ()=>{
+  if(state.locked) return;
+  const w = getCurrentWord();
+  if(w.length < 2) return;
+  if(state.allWords.has(w)) submitWord(w);
+  else rejectWord();
+});
+currentWordEl.addEventListener('click', ()=>{
+  if(state.locked) return;
+  initAudio(); sfx.tap(); clearSelection();
+});
+
+$$('[data-close]').forEach(b=>{
+  b.addEventListener('click', ()=> b.closest('.overlay').classList.remove('show'));
+});
+$$('.overlay').forEach(o=>{
+  o.addEventListener('click', (e)=>{
+    if(e.target === o && !['splashOverlay','winOverlay'].includes(o.id)){
+      o.classList.remove('show');
+    }
+  });
+});
+
+$('#splashPlay').addEventListener('click', ()=>{
+  state.seenSplash = true; saveProgress(true);
+  $('#splashOverlay').classList.remove('show');
+  initAudio();
+});
+$('#splashQuests').addEventListener('click', ()=>{
+  state.seenSplash = true; saveProgress(true);
+  $('#splashOverlay').classList.remove('show');
+  renderQuests();
+  $('#questsOverlay').classList.add('show');
+  initAudio();
+});
+
+$('#menuBtn').addEventListener('click', ()=>{
+  if(state.locked && !state.completedBadge) return;
+  const hasUndone = state.quests.items.some(q => !q.done);
+  $('#questsBadge').textContent = (hasUndone && state.quests.items.length) ? ' 🔴' : '';
+  const streakText = state.streak.count > 0 ? ` · 🔥${state.streak.count}` : '';
+  $('#menuSub').textContent = `Уровень ${state.levelIndex+1} · ${formatNum(state.coins)} ◈${streakText}`;
+  $('#menuOverlay').classList.add('show');
+});
+$('#continueBtn').addEventListener('click', ()=> $('#menuOverlay').classList.remove('show'));
+$('#restartLevelBtn').addEventListener('click', ()=>{
+  $('#menuOverlay').classList.remove('show');
+  delete state.levelProgress[state.levelIndex];
+  buildLevel(state.levelIndex);
+  saveProgress(true);
+  showToast('Уровень перезапущен','quest');
+});
+
+$('#openQuestsBtn').addEventListener('click', ()=>{
+  $('#menuOverlay').classList.remove('show');
+  renderQuests();
+  $('#questsOverlay').classList.add('show');
+});
+$('#closeQuestsBtn').addEventListener('click', ()=> $('#questsOverlay').classList.remove('show'));
+$('#openMapBtn').addEventListener('click', ()=>{
+  $('#menuOverlay').classList.remove('show');
+  renderLevelMap();
+  $('#mapOverlay').classList.add('show');
+});
+$('#closeMapBtn').addEventListener('click', ()=> $('#mapOverlay').classList.remove('show'));
+$('#openAchBtn').addEventListener('click', ()=>{
+  $('#menuOverlay').classList.remove('show');
+  renderAchievements();
+  $('#achOverlay').classList.add('show');
+});
+$('#closeAchBtn').addEventListener('click', ()=> $('#achOverlay').classList.remove('show'));
+$('#openWordsBtn').addEventListener('click', ()=>{
+  $('#menuOverlay').classList.remove('show');
+  renderWordList();
+  $('#wordsOverlay').classList.add('show');
+});
+$('#closeWordsBtn').addEventListener('click', ()=> $('#wordsOverlay').classList.remove('show'));
+$('#openSettingsBtn').addEventListener('click', ()=>{
+  $('#menuOverlay').classList.remove('show');
+  $('#settingsOverlay').classList.add('show');
+});
+$('#closeSettingsBtn').addEventListener('click', ()=> $('#settingsOverlay').classList.remove('show'));
+
+$('#levelPill').addEventListener('click', ()=>{
+  if(state.locked && !state.completedBadge) return;
+  renderLevelMap();
+  $('#mapOverlay').classList.add('show');
+});
+$('#progressWrap').addEventListener('click', ()=>{
+  if(state.locked && !state.completedBadge) return;
+  renderLengths();
+  $('#lengthsOverlay').classList.add('show');
+});
+$('#closeLengthsBtn').addEventListener('click', ()=> $('#lengthsOverlay').classList.remove('show'));
+
+$('#hintBtn').addEventListener('click', ()=>{
+  if(state.locked) return;
+  $('#hintOverlay').classList.add('show');
+  bindRipples();
+});
+$('#hintLetter').addEventListener('click', ()=>{ if(hintLetter()) $('#hintOverlay').classList.remove('show'); });
+$('#hintSmart').addEventListener('click', ()=>{ if(hintSmart()) $('#hintOverlay').classList.remove('show'); });
+$('#hintWord').addEventListener('click', ()=>{ if(hintWord()) $('#hintOverlay').classList.remove('show'); });
+$('#closeHintBtn').addEventListener('click', ()=> $('#hintOverlay').classList.remove('show'));
+
+$('#nextBtn').addEventListener('click', ()=>{
+  $('#winOverlay').classList.remove('show');
+  const next = state.levelIndex + 1;
+  if(next >= LEVELS.length){
+    state.levelProgress = {};
+    buildLevel(0);
+  } else {
+    buildLevel(next);
+  }
+  saveProgress(true);
+});
+$('#replayBtn').addEventListener('click', ()=>{
+  $('#winOverlay').classList.remove('show');
+  delete state.levelProgress[state.levelIndex];
+  buildLevel(state.levelIndex);
+  saveProgress(true);
+});
+$('#toMapBtn').addEventListener('click', ()=>{
+  $('#winOverlay').classList.remove('show');
+  renderLevelMap();
+  $('#mapOverlay').classList.add('show');
+});
+$('#shareResultBtn').addEventListener('click', shareResult);
+
+$('#resetAllBtn').addEventListener('click', ()=>{
+  if(!confirm('Сбросить весь прогресс? Это действие необратимо.')) return;
+  storage.clear();
+  state.coins = 0;
+  state.levelIndex = 0;
+  state.maxLevelUnlocked = 0;
+  state.stars = {};
+  state.bestTimes = {};
+  state.fastWonLevels = new Set();
+  state.achievements = new Set();
+  state.stats = { words:0, bonus:0, perfects:0, maxCombo:0, levelsCompleted:0, maxCoins:0, uniqueLevels:0, bestStreak:0, fastWins:0 };
+  state.quests = { date:'', items:[], progress:{} };
+  state.streak = { count:0, lastDay:'', best:0 };
+  state.levelProgress = {};
+  state.todayProgress = { noHintLevels:0, maxComboToday:0, perfectsToday:0, levelsToday:0 };
+  state.seenSplash = true;
+  generateDailyQuests();
+  buildLevel(0);
+  $('#settingsOverlay').classList.remove('show');
+  saveProgress(true);
+  showToast('Прогресс сброшен');
+});
+
+$('#skipLevelBtn').addEventListener('click', skipLevel);
+
+bindToggle('#tgSound', 'sound');
+bindToggle('#tgHaptics', 'haptics');
+bindToggle('#tgAmbient', 'ambient');
+applyTheme();
+$$('.theme-dot').forEach(d=>{
+  d.addEventListener('click', ()=>{
+    state.settings.theme = d.dataset.t;
+    applyTheme(); saveProgress(); sfx.tap();
+  });
+});
+
+window.addEventListener('resize', ()=>{ layoutBoard(); drawLines(); });
+if(window.ResizeObserver){
+  new ResizeObserver(()=>{ layoutBoard(); drawLines(); }).observe(boardArea);
+}
+document.addEventListener('gesturestart', e=> e.preventDefault());
+document.addEventListener('dblclick', e=> e.preventDefault(), {passive:false});
+
+document.addEventListener('visibilitychange', ()=>{
+  if(document.hidden){
+    if(!state.locked && !state.completedBadge && !state.levelPausedAt){
+      syncLevelElapsed();
+      saveLevelProgress();
+    }
+    saveProgress(true);
+    if(ambient.raf && state.settings.ambient){
+      ambient._pausedByVisibility = true;
+      ambient.stop();
+    }
+    pauseLevelTimer();
+  } else {
+    if(ambient._pausedByVisibility && state.settings.ambient){
+      ambient._pausedByVisibility = false;
+      ambient.start();
+    }
+    unpauseLevelTimer();
+  }
+});
+window.addEventListener('beforeunload', ()=>{
+  if(!state.locked && !state.completedBadge && !state.levelPausedAt){
+    syncLevelElapsed();
+    saveLevelProgress();
+  }
+  saveProgress(true);
+});
+
+setInterval(()=>{
+  if($('#questsOverlay').classList.contains('show')) renderQuests();
+}, 60000);
+
+(function init(){
+  restoreProgress();
+  applyTheme();
+  if(state.settings.ambient !== false) ambient.start();
+  generateDailyQuests();
+
+  levelTotalEl.textContent = '/' + LEVELS.length;
+  buildLevel(state.levelIndex);
+
+  setTimeout(layoutBoard, 90);
+  setTimeout(layoutBoard, 400);
+
+  checkAchievements();
+  updateStreak();
+  updateStreakIndicator();
+
+  if(!state.seenSplash) $('#splashOverlay').classList.add('show');
+
+  bindRipples();
+})();
+</script>
+</body>
+</html>
